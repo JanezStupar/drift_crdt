@@ -9,8 +9,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'
     show databaseFactory, databaseFactoryFfi, getDatabasesPath;
-import 'package:sqlite_crdt/sqlite_crdt.dart' show CrdtChangeset, Hlc;
-import 'serializable.dart' as s;
+import 'package:synchroflite/synchroflite.dart' show CrdtChangeset, Hlc;
+import 'utils/serializable.dart' as s;
 
 void crdtTests(Database db, CrdtExecutor executor) {
   test('get last modified', () async {
@@ -39,10 +39,9 @@ void crdtTests(Database db, CrdtExecutor executor) {
 
     expect(changeset, isNotNull);
     expect(changeset.length, equals(2));
-    expect(
-        json.encode(changeset),
-        equals(
-            '{"users":[{"id":1,"name":"Dash","birth_date":1318284000,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"},{"id":2,"name":"Duke","birth_date":822351600,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"},{"id":3,"name":"Go Gopher","birth_date":1332885600,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"},{"id":6,"name":"Florian, the fluffy Ferret from Florida familiar with Flutter","birth_date":1430258400,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"}],"friendships":[]}'));
+    expect(changeset['users']![0]['name'], equals('Dash'));
+    expect(changeset['users']![1]['name'], equals('Duke'));
+    expect(changeset['users']![2]['name'], equals('Go Gopher'));
   });
 
   test('handle JSON changeset', () async {

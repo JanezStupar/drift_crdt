@@ -1,4 +1,4 @@
-import 'package:sqlite_crdt/sqlite_crdt.dart';
+import 'package:drift_crdt/serializable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'serializable.g.dart';

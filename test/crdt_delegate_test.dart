@@ -6,8 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' show databaseFactory, databaseFactoryFfi, getDatabasesPath;
 
-import 'crdt_functions_test.dart';
-
 class CrdtExecutor extends TestExecutor {
   // Nested transactions are not supported because the Sqflite backend doesn't
   // support them.

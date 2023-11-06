@@ -11,7 +11,7 @@ import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
-import 'package:sqlite_crdt/sqlite_crdt.dart';
+import 'package:synchroflite/synchroflite.dart';
 
 /// Signature of a function that runs when a database doesn't exist on file.
 /// This can be useful to, for instance, load the database from an asset if it
@@ -20,7 +20,7 @@ typedef DatabaseCreator = FutureOr<void> Function(File file);
 typedef Query = (String sql, List<Object?> args);
 
 class SqliteTransactionCrdt {
-  final TransactionCrdt txn;
+  final TransactionSynchroflite txn;
 
   SqliteTransactionCrdt(this.txn);
 
@@ -76,13 +76,13 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
 
   @override
   FutureOr<void> startTransaction(Future Function(QueryDelegate) run) {
-    return api.sqliteCrdt.transaction((txn) async {
+    return api.synchroflite.transaction((txn) async {
       return run(_CrdtQueryDelegate(SqliteTransactionCrdt(txn)));
     });
   }
 
   Future<void> runBatched(BatchedStatements statements) async {
-    final batch = api.sqliteCrdt.batch();
+    final batch = api.synchroflite.batch();
 
     for (final arg in statements.arguments) {
       batch.execute(statements.statements[arg.statementIndex], arg.arguments);
@@ -93,7 +93,7 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
 }
 
 class _CrdtDelegate extends DatabaseDelegate {
-  late SqliteCrdt sqliteCrdt;
+  late Synchroflite synchroflite;
   bool _isOpen = false;
 
   final bool inDbFolder;
@@ -110,7 +110,7 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   late final DbVersionDelegate versionDelegate =
-      _CrdtVersionDelegate(sqliteCrdt);
+      _CrdtVersionDelegate(synchroflite);
 
   @override
   TransactionDelegate get transactionDelegate {
@@ -138,7 +138,7 @@ class _CrdtDelegate extends DatabaseDelegate {
     }
 
     // default value when no migration happened
-    sqliteCrdt = await SqliteCrdt.open(
+    synchroflite = await Synchroflite.open(
       resolvedPath,
       singleInstance: singleInstance,
       migrate: migrate,
@@ -149,12 +149,12 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   Future<void> close() {
-    return sqliteCrdt.close();
+    return synchroflite.close();
   }
 
   @override
   Future<void> runBatched(BatchedStatements statements) async {
-    final batch = sqliteCrdt.batch();
+    final batch = synchroflite.batch();
 
     for (final arg in statements.arguments) {
       batch.execute(statements.statements[arg.statementIndex], arg.arguments);
@@ -165,28 +165,28 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   Future<void> runCustom(String statement, List<Object?> args) {
-    return sqliteCrdt.execute(statement, args);
+    return synchroflite.execute(statement, args);
   }
 
   @override
   Future<int> runInsert(String statement, List<Object?> args) {
-    return sqliteCrdt.rawInsert(statement, args);
+    return synchroflite.rawInsert(statement, args);
   }
 
   @override
   Future<QueryResult> runSelect(String statement, List<Object?> args) async {
-    final result = await sqliteCrdt.rawQuery(statement, args);
+    final result = await synchroflite.rawQuery(statement, args);
     return QueryResult.fromRows(result);
   }
 
   @override
   Future<int> runUpdate(String statement, List<Object?> args) {
-    return sqliteCrdt.rawUpdate(statement, args);
+    return synchroflite.rawUpdate(statement, args);
   }
 }
 
 class _CrdtVersionDelegate extends DynamicVersionDelegate {
-  final SqliteCrdt _db;
+  final Synchroflite _db;
 
   _CrdtVersionDelegate(this._db);
 
@@ -263,9 +263,9 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   ///
   /// Note that this returns null until the drift database has been opened.
   /// A drift database is opened lazily when the first query runs.
-  SqliteCrdt? get sqfliteDb {
+  Synchroflite? get sqfliteDb {
     final crdtDelegate = delegate as _CrdtDelegate;
-    return crdtDelegate.isOpen ? crdtDelegate.sqliteCrdt : null;
+    return crdtDelegate.isOpen ? crdtDelegate.synchroflite : null;
   }
 
   @override
@@ -279,7 +279,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   Future<Hlc?> getLastModified(
       {String? onlyNodeId, String? exceptNodeId}) async {
     final crdtDelegate = delegate as _CrdtDelegate;
-    return crdtDelegate.sqliteCrdt
+    return crdtDelegate.synchroflite
         .getLastModified(onlyNodeId: onlyNodeId, exceptNodeId: exceptNodeId);
   }
 
@@ -292,7 +292,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     Hlc? modifiedAfter,
   }) async {
     final crdtDelegate = delegate as _CrdtDelegate;
-    return crdtDelegate.sqliteCrdt.getChangeset(
+    return crdtDelegate.synchroflite.getChangeset(
         customQueries: customQueries,
         onlyTables: onlyTables,
         exceptNodeId: exceptNodeId,
@@ -302,6 +302,6 @@ class CrdtQueryExecutor extends DelegatedDatabase {
 
   Future<void> merge(CrdtChangeset changeset) async {
     final crdtDelegate = delegate as _CrdtDelegate;
-    return crdtDelegate.sqliteCrdt.merge(changeset);
+    return crdtDelegate.synchroflite.merge(changeset);
   }
 }

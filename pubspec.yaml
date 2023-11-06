@@ -14,7 +14,9 @@ dependencies:
   path: ^1.8.0
   flutter:
     sdk: flutter
-  sqlite_crdt:
+  synchroflite:
+    git:
+      url: https://github.com/JanezStupar/synchroflite.git
   json_serializable: ^6.2.0
   json_annotation: ^4.8.1
 
@@ -40,11 +42,3 @@ flutter:
 dependency_overrides:
   # Flutter's test packages don't support the latest analyzer yet.
   test_api: 0.6.1
-  sqlite_crdt:
-    git:
-      url: https://github.com/JanezStupar/sqlite_crdt.git
-      ref: sqlfite_compat_pr
-  sql_crdt:
-    git:
-      url: https://github.com/JanezStupar/sql_crdt.git
-      ref: sqflite_compat_pr
