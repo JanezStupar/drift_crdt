@@ -28,5 +28,28 @@ QueryExecutor _openConnection() {
 }
 ```
 
+## CRDT specific features
+Use `CrdtQueryExecutor.getLastModified` to get the last modified timestamp of the database.
+See [CrdtQueryExecutor.getLastModified](/lib/drift_crdt.dart) for more information.
+```dart
+  final changeset = await (db.executor as CrdtQueryExecutor).getCLastModified();
+```
+
+Use `CrdtQueryExecutor.getChangeset` to get the changeset of the database.
+See [CrdtQueryExecutor.getChangeset](/lib/drift_crdt.dart) for more information.
+```dart
+  final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
+```
+
+Use 'CrdtQueryExecutor.merge' to merge a changeset into the database.
+See [CrdtQueryExecutor.merge](/lib/drift_crdt.dart) for more information.
+```dart
+  await (db.executor as CrdtQueryExecutor).merge(changeset);
+```
+
+## Serialization into JSON
+I am using the [json_annotation](https://pub.dev/packages/json_annotation) package to serialize the changesets into and from JSON in my own project.
+You can see an example of such in the test suite of this package.
+
 __Note__: The `drift_crdt` package is an alternative to the standard approach suggested in
 the drift documentation (which consists of a `NativeDatabase` instead of `CrdtQueryExecutor`).

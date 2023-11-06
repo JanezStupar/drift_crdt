@@ -276,6 +276,8 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   bool get isSequential => true;
 
   /// Returns the last modified timestamp of the database.
+  ///  [onlyNodeId] only return the last modified timestamp of the given node
+  ///  [exceptNodeId] do not return the last modified timestamp of the given node
   Future<Hlc?> getLastModified(
       {String? onlyNodeId, String? exceptNodeId}) async {
     final crdtDelegate = delegate as _CrdtDelegate;
@@ -283,6 +285,13 @@ class CrdtQueryExecutor extends DelegatedDatabase {
         .getLastModified(onlyNodeId: onlyNodeId, exceptNodeId: exceptNodeId);
   }
 
+  /// Returns the database changeset according to the given parameters.
+  /// [customQueries] can be used to add custom queries to the changeset.
+  /// [onlyTables] only return changes for the given tables
+  /// [onlyNodeId] only return changes for the given node
+  /// [exceptNodeId] do not return changes for the given node
+  /// [modifiedOn] only return changes that were modified on the given timestamp
+  /// [modifiedAfter] only return changes that were modified after the given timestamp
   Future<CrdtChangeset> getChangeset({
     Map<String, Query>? customQueries,
     Iterable<String>? onlyTables,
@@ -300,6 +309,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
         modifiedAfter: modifiedAfter);
   }
 
+  /// merges the provided changeset with the database
   Future<void> merge(CrdtChangeset changeset) async {
     final crdtDelegate = delegate as _CrdtDelegate;
     return crdtDelegate.synchroflite.merge(changeset);
