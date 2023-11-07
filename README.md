@@ -53,3 +53,5 @@ You can see an example of such in the test suite of this package.
 
 __Note__: The `drift_crdt` package is an alternative to the standard approach suggested in
 the drift documentation (which consists of a `NativeDatabase` instead of `CrdtQueryExecutor`).
+
+__Note__: Hasn't been tested on iOS and Android yet.
