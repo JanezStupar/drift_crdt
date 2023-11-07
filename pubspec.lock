@@ -667,11 +667,10 @@ packages:
   synchroflite:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: da32aa3f6116b4e8b6265081dc88ef665192735f
-      url: "https://github.com/JanezStupar/synchroflite.git"
-    source: git
+      name: synchroflite
+      sha256: "2be1a7906bbf5d760441052a26605720f2b3a1dc9dbd67fc5aee91c320cb5224"
+      url: "https://pub.dev"
+    source: hosted
     version: "0.1.0"
   synchronized:
     dependency: transitive

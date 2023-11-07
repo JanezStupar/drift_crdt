@@ -14,9 +14,7 @@ dependencies:
   path: ^1.8.0
   flutter:
     sdk: flutter
-  synchroflite:
-    git:
-      url: https://github.com/JanezStupar/synchroflite.git
+  synchroflite: ^0.1.0
   json_serializable: ^6.2.0
   json_annotation: ^4.8.1
 
