@@ -28,6 +28,22 @@ QueryExecutor _openConnection() {
 }
 ```
 
+## Querying in drift_crdt and you!
+When performing queries by default deleted records are not returned.
+
+The reason is that we want the CRDT implementation to be seamless and should not 
+break your application by default.
+
+However if you want to query for deleted records you can use the `queryDeleted` helper function.
+
+Example, to get all users including deleted ones:
+```dart
+  final result = await queryDeleted(
+    (db.executor) as CrdtQueryExecutor,
+    () async => db.select(db.users).get()
+  );
+```
+
 ## CRDT specific features
 Use `CrdtQueryExecutor.getLastModified` to get the last modified timestamp of the database.
 See [CrdtQueryExecutor.getLastModified](/lib/drift_crdt.dart) for more information.

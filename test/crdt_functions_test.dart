@@ -18,11 +18,13 @@ void crdtTests(Database db, CrdtExecutor executor) {
         await (db.executor as CrdtQueryExecutor).getLastModified();
 
     expect(lastModified, isNotNull);
-    expect(lastModified?.dateTime.millisecondsSinceEpoch, equals(1691413901771));
+    expect(
+        lastModified?.dateTime.millisecondsSinceEpoch, equals(1691413901771));
   });
 
   test('get changeset', () async {
-    CrdtChangeset changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
+    CrdtChangeset changeset =
+        await (db.executor as CrdtQueryExecutor).getChangeset();
 
     expect(changeset, isNotNull);
     expect(changeset.length, equals(2));
@@ -75,8 +77,8 @@ void crdtTests(Database db, CrdtExecutor executor) {
           "profile_picture": null,
           "preferences": null,
           "is_deleted": 0,
-          "hlc":
-              Hlc.parse("2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
+          "hlc": Hlc.parse(
+              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
           "node_id": "42bab6fa-f6c6-4e5b-babf-1a2adb170966",
           "modified":
               "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"
@@ -89,8 +91,8 @@ void crdtTests(Database db, CrdtExecutor executor) {
           "profile_picture": null,
           "preferences": null,
           "is_deleted": 0,
-          "hlc":
-              Hlc.parse("2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
+          "hlc": Hlc.parse(
+              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
           "node_id": "42bab6fa-f6c6-4e5b-babf-1a2adb170966",
           "modified":
               "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"
@@ -119,8 +121,8 @@ void crdtTests(Database db, CrdtExecutor executor) {
           "profile_picture": null,
           "preferences": null,
           "is_deleted": 0,
-          "hlc":
-              Hlc.parse("2023-09-02T06:48:11.103Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170968"),
+          "hlc": Hlc.parse(
+              "2023-09-02T06:48:11.103Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170968"),
           "node_id":
               "2023-09-02T06:48:11.103Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170968",
           "modified":
@@ -134,8 +136,8 @@ void crdtTests(Database db, CrdtExecutor executor) {
           "profile_picture": null,
           "preferences": null,
           "is_deleted": 0,
-          "hlc":
-              Hlc.parse("2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
+          "hlc": Hlc.parse(
+              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
           "node_id": "42bab6fa-f6c6-4e5b-babf-1a2adb170966",
           "modified":
               "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"
@@ -159,6 +161,43 @@ void crdtTests(Database db, CrdtExecutor executor) {
         userFlorian[0].name,
         equals(
             'Florian, the fluffy Ferret from Florida familiar with Flutter'));
+  });
+
+  test('queryDeleted', () async {
+    final notDeleted = await db.select(db.users).get();
+    expect(notDeleted, isNotNull);
+    expect(notDeleted.length, equals(4));
+
+    await (db.delete(db.users)
+          ..where((tbl) => tbl.id.equals(notDeleted.first.id)))
+        .go();
+
+    final result = await queryDeleted((db.executor) as CrdtQueryExecutor,
+        () async => db.select(db.users).get());
+    expect(result, isNotNull);
+    expect(result.length, equals(4));
+  });
+
+  test('queryDeleted in transaction', () async {
+    var notDeleted = await db.select(db.users).get();
+    expect(notDeleted, isNotNull);
+    expect(notDeleted.length, equals(3));
+
+    await (db.delete(db.users)
+          ..where((tbl) => tbl.id.equals(notDeleted.first.id)))
+        .go();
+
+    await queryDeleted(
+        (db.executor) as CrdtQueryExecutor,
+        () async => db.transaction(() async {
+              final resultTransaction = await db.select(db.users).get();
+              expect(resultTransaction, isNotNull);
+              expect(resultTransaction.length, equals(4));
+            }));
+
+    notDeleted = await db.select(db.users).get();
+    expect(notDeleted, isNotNull);
+    expect(notDeleted.length, equals(2));
   });
 }
 

@@ -28,6 +28,11 @@ class SqliteTransactionCrdt {
     await txn.execute(sql, args);
   }
 
+  Future<List<Map<String, Object?>>> query(String sql,
+      [List<Object?>? arguments]) {
+    return txn.query(sql, arguments);
+  }
+
   Future<List<Map<String, Object?>>> rawQuery(String sql,
       [List<Object?>? arguments]) {
     return txn.rawQuery(sql, arguments);
@@ -44,8 +49,9 @@ class SqliteTransactionCrdt {
 
 class _CrdtQueryDelegate extends QueryDelegate {
   late final SqliteTransactionCrdt _transactionCrdt;
+  final bool _queryDeleted;
 
-  _CrdtQueryDelegate(this._transactionCrdt);
+  _CrdtQueryDelegate(this._transactionCrdt, this._queryDeleted);
 
   @override
   Future<void> runCustom(String statement, List<Object?> args) {
@@ -59,8 +65,13 @@ class _CrdtQueryDelegate extends QueryDelegate {
 
   @override
   Future<QueryResult> runSelect(String statement, List<Object?> args) async {
-    final result = await _transactionCrdt.rawQuery(statement, args);
-    return QueryResult.fromRows(result);
+    if (_queryDeleted) {
+      final result = await _transactionCrdt.query(statement, args);
+      return QueryResult.fromRows(result);
+    } else {
+      final result = await _transactionCrdt.rawQuery(statement, args);
+      return QueryResult.fromRows(result);
+    }
   }
 
   @override
@@ -71,13 +82,14 @@ class _CrdtQueryDelegate extends QueryDelegate {
 
 class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
   final _CrdtDelegate api;
+  bool queryDeleted = false;
 
   _CrdtTransactionDelegate(this.api);
 
   @override
   FutureOr<void> startTransaction(Future Function(QueryDelegate) run) {
     return api.synchroflite.transaction((txn) async {
-      return run(_CrdtQueryDelegate(SqliteTransactionCrdt(txn)));
+      return run(_CrdtQueryDelegate(SqliteTransactionCrdt(txn), queryDeleted));
     });
   }
 
@@ -95,6 +107,7 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
 class _CrdtDelegate extends DatabaseDelegate {
   late Synchroflite synchroflite;
   bool _isOpen = false;
+  bool queryDeleted = false;
 
   final bool inDbFolder;
   final String path;
@@ -175,8 +188,13 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   Future<QueryResult> runSelect(String statement, List<Object?> args) async {
-    final result = await synchroflite.rawQuery(statement, args);
-    return QueryResult.fromRows(result);
+    if (queryDeleted) {
+      final result = await synchroflite.query(statement, args);
+      return QueryResult.fromRows(result);
+    } else {
+      final result = await synchroflite.rawQuery(statement, args);
+      return QueryResult.fromRows(result);
+    }
   }
 
   @override
@@ -314,4 +332,22 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     final crdtDelegate = delegate as _CrdtDelegate;
     return crdtDelegate.synchroflite.merge(changeset);
   }
+}
+
+typedef DelegateCallback<R> = Future<R> Function();
+
+/// Allows access to the deleted records using the Drift API
+/// [db] the database executor to query
+/// callback the callback to execute, works with transactions too.
+Future<R> queryDeleted<R>(CrdtQueryExecutor db, DelegateCallback<R> callback) async {
+  (db.delegate as _CrdtDelegate).queryDeleted = true;
+  ((db.delegate as _CrdtDelegate).transactionDelegate
+          as _CrdtTransactionDelegate)
+      .queryDeleted = true;
+  final result = await callback();
+  (db.delegate as _CrdtDelegate).queryDeleted = false;
+  ((db.delegate as _CrdtDelegate).transactionDelegate
+          as _CrdtTransactionDelegate)
+      .queryDeleted = false;
+  return result;
 }
