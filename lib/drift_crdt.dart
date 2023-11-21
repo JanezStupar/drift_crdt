@@ -13,6 +13,9 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:synchroflite/synchroflite.dart';
 
+const _crdtDeletedOn = 'CRDT QUERY DELETED ON';
+const _crdtDeletedOff = 'CRDT QUERY DELETED OFF';
+
 /// Signature of a function that runs when a database doesn't exist on file.
 /// This can be useful to, for instance, load the database from an asset if it
 /// doesn't exist.
@@ -107,7 +110,7 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
 class _CrdtDelegate extends DatabaseDelegate {
   late Synchroflite synchroflite;
   bool _isOpen = false;
-  bool queryDeleted = false;
+  bool _queryDeleted = false;
 
   final bool inDbFolder;
   final String path;
@@ -127,7 +130,9 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   TransactionDelegate get transactionDelegate {
-    return _transactionDelegate ??= _CrdtTransactionDelegate(this);
+    final delegate = _transactionDelegate ??= _CrdtTransactionDelegate(this);
+    delegate.queryDeleted = _queryDeleted;
+    return delegate;
   }
 
   @override
@@ -178,7 +183,17 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   Future<void> runCustom(String statement, List<Object?> args) {
-    return synchroflite.execute(statement, args);
+    switch (statement) {
+      case _crdtDeletedOn:
+        _queryDeleted = true;
+        break;
+      case _crdtDeletedOff:
+        _queryDeleted = false;
+        break;
+      default:
+        return synchroflite.execute(statement, args);
+    }
+    return Future.value();
   }
 
   @override
@@ -188,7 +203,7 @@ class _CrdtDelegate extends DatabaseDelegate {
 
   @override
   Future<QueryResult> runSelect(String statement, List<Object?> args) async {
-    if (queryDeleted) {
+    if (_queryDeleted) {
       final result = await synchroflite.query(statement, args);
       return QueryResult.fromRows(result);
     } else {
@@ -339,15 +354,13 @@ typedef DelegateCallback<R> = Future<R> Function();
 /// Allows access to the deleted records using the Drift API
 /// [db] the database executor to query
 /// callback the callback to execute, works with transactions too.
-Future<R> queryDeleted<R>(CrdtQueryExecutor db, DelegateCallback<R> callback) async {
-  (db.delegate as _CrdtDelegate).queryDeleted = true;
-  ((db.delegate as _CrdtDelegate).transactionDelegate
-          as _CrdtTransactionDelegate)
-      .queryDeleted = true;
-  final result = await callback();
-  (db.delegate as _CrdtDelegate).queryDeleted = false;
-  ((db.delegate as _CrdtDelegate).transactionDelegate
-          as _CrdtTransactionDelegate)
-      .queryDeleted = false;
-  return result;
+Future<R> queryDeleted<T, R>(T db, DelegateCallback<R> callback) async {
+  if (db is QueryExecutor) {
+    await db.runCustom(_crdtDeletedOn);
+    final result = await callback();
+    await db.runCustom(_crdtDeletedOff);
+    return result;
+  } else {
+    throw "Database executor is null";
+  }
 }
