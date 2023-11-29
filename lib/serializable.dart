@@ -13,5 +13,6 @@ class BaseCrdtSerializable {
   @JsonKey(name: 'is_deleted')
   final int isDeleted;
 
-  BaseCrdtSerializable(this.id, this.hlc, this.nodeId, this.modified, this.isDeleted);
+  BaseCrdtSerializable(
+      this.id, this.hlc, this.nodeId, this.modified, this.isDeleted);
 }
