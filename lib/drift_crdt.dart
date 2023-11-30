@@ -107,6 +107,22 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
   }
 }
 
+class _CrdtDelegateInMemory extends _CrdtDelegate {
+  _CrdtDelegateInMemory({singleInstance = true, migrate = false, creator})
+      : super(false, '',
+            singleInstance: singleInstance, migrate: migrate, creator: creator);
+
+  @override
+  Future<void> open(QueryExecutorUser user) async {
+    synchroflite = await Synchroflite.openInMemory(
+      singleInstance: singleInstance,
+      migrate: migrate,
+    );
+    _transactionDelegate = _CrdtTransactionDelegate(this);
+    _isOpen = true;
+  }
+}
+
 class _CrdtDelegate extends DatabaseDelegate {
   late Synchroflite synchroflite;
   bool _isOpen = false;
@@ -158,6 +174,16 @@ class _CrdtDelegate extends DatabaseDelegate {
     // default value when no migration happened
     synchroflite = await Synchroflite.open(
       resolvedPath,
+      singleInstance: singleInstance,
+      migrate: migrate,
+    );
+    _transactionDelegate = _CrdtTransactionDelegate(this);
+    _isOpen = true;
+  }
+
+  Future<void> openInMemory(QueryExecutorUser user) async {
+    // default value when no migration happened
+    synchroflite = await Synchroflite.openInMemory(
       singleInstance: singleInstance,
       migrate: migrate,
     );
@@ -255,6 +281,18 @@ class CrdtQueryExecutor extends DelegatedDatabase {
       bool migrate = false})
       : super(
             _CrdtDelegate(false, path,
+                singleInstance: singleInstance,
+                creator: creator,
+                migrate: migrate),
+            logStatements: logStatements);
+
+  CrdtQueryExecutor.inMemory(
+      {bool? logStatements,
+      bool singleInstance = true,
+      DatabaseCreator? creator,
+      bool migrate = false})
+      : super(
+            _CrdtDelegateInMemory(
                 singleInstance: singleInstance,
                 creator: creator,
                 migrate: migrate),
