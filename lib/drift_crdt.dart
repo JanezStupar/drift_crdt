@@ -107,6 +107,22 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
   }
 }
 
+class _CrdtDelegateInMemory extends _CrdtDelegate {
+  _CrdtDelegateInMemory({singleInstance = true, migrate = false, creator})
+      : super(false, '',
+            singleInstance: singleInstance, migrate: migrate, creator: creator);
+
+  @override
+  Future<void> open(QueryExecutorUser user) async {
+    synchroflite = await Synchroflite.openInMemory(
+      singleInstance: singleInstance,
+      migrate: migrate,
+    );
+    _transactionDelegate = _CrdtTransactionDelegate(this);
+    _isOpen = true;
+  }
+}
+
 class _CrdtDelegate extends DatabaseDelegate {
   late Synchroflite synchroflite;
   bool _isOpen = false;
@@ -158,6 +174,16 @@ class _CrdtDelegate extends DatabaseDelegate {
     // default value when no migration happened
     synchroflite = await Synchroflite.open(
       resolvedPath,
+      singleInstance: singleInstance,
+      migrate: migrate,
+    );
+    _transactionDelegate = _CrdtTransactionDelegate(this);
+    _isOpen = true;
+  }
+
+  Future<void> openInMemory(QueryExecutorUser user) async {
+    // default value when no migration happened
+    synchroflite = await Synchroflite.openInMemory(
       singleInstance: singleInstance,
       migrate: migrate,
     );
@@ -260,6 +286,18 @@ class CrdtQueryExecutor extends DelegatedDatabase {
                 migrate: migrate),
             logStatements: logStatements);
 
+  CrdtQueryExecutor.inMemory(
+      {bool? logStatements,
+      bool singleInstance = true,
+      DatabaseCreator? creator,
+      bool migrate = false})
+      : super(
+            _CrdtDelegateInMemory(
+                singleInstance: singleInstance,
+                creator: creator,
+                migrate: migrate),
+            logStatements: logStatements);
+
   /// A query executor that will store the database in the file declared by
   /// [path], which will be resolved relative to [s.getDatabasesPath()].
   /// If [logStatements] is true, statements sent to the database will
@@ -356,10 +394,15 @@ typedef DelegateCallback<R> = Future<R> Function();
 /// callback the callback to execute, works with transactions too.
 Future<R> queryDeleted<T, R>(T db, DelegateCallback<R> callback) async {
   if (db is QueryExecutor) {
-    await db.runCustom(_crdtDeletedOn);
-    final result = await callback();
-    await db.runCustom(_crdtDeletedOff);
-    return result;
+    if (db is CrdtQueryExecutor) {
+      await db.runCustom(_crdtDeletedOn);
+      final result = await callback();
+      await db.runCustom(_crdtDeletedOff);
+      return result;
+    } else {
+      // queryDeleted is a noop for non CrdtQueryExecutor
+      return await callback();
+    }
   } else {
     throw "Database executor is null";
   }
