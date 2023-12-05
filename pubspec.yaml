@@ -1,6 +1,6 @@
 name: drift_crdt
 description: A Flutter-only implementation of a drift CRDT database, based on the `sqlite_crdt` package and `sqflite`.
-version: 1.0.5
+version: 1.0.6
 repository: https://github.com/JanezStupar/drift_crdt.git
 homepage: https://janezstupar.com
 issue_tracker: https://github.com/JanezStupar/drift_crdt/issues
@@ -15,6 +15,7 @@ dependencies:
   flutter:
     sdk: flutter
   synchroflite: ^0.1.1
+  crdt: ^5.1.2
   json_serializable: ^6.2.0
   json_annotation: ^4.8.1
 

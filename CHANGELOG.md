@@ -1,3 +1,6 @@
+## 1.0.6
+- Add crdt library to dependencies and reexport it.
+
 ## 1.0.5
 - Add bypass for the queryDeleted function for non CRDT databases.
 

@@ -13,6 +13,8 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:synchroflite/synchroflite.dart';
 
+export 'package:crdt/crdt.dart';
+
 const _crdtDeletedOn = 'CRDT QUERY DELETED ON';
 const _crdtDeletedOff = 'CRDT QUERY DELETED OFF';
 
