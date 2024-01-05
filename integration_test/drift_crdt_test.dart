@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -117,7 +117,7 @@ Future<void> main() async {
 }
 
 class EmptyDb extends GeneratedDatabase {
-  EmptyDb(QueryExecutor q) : super(q);
+  EmptyDb(super.q);
   @override
   final List<TableInfo> allTables = const [];
   @override

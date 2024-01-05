@@ -1,17 +1,17 @@
 import 'package:json_annotation/json_annotation.dart';
 
-class BaseCrdtSerializable {
-  final int id;
+abstract class BaseCrdtSerializable {
+  dynamic id;
 
-  final String hlc;
+  String hlc;
 
   @JsonKey(name: 'node_id')
-  final String nodeId;
+  String nodeId;
 
-  final String modified;
+  String modified;
 
   @JsonKey(name: 'is_deleted')
-  final int isDeleted;
+  int isDeleted;
 
   BaseCrdtSerializable(
       this.id, this.hlc, this.nodeId, this.modified, this.isDeleted);

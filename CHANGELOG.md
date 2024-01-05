@@ -1,3 +1,7 @@
+## 1.0.7
+- Improve serializable datatype.
+- Bump dependencies.
+
 ## 1.0.6
 - Add crdt library to dependencies and reexport it.
 

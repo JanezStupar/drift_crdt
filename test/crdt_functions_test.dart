@@ -9,7 +9,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'
     show databaseFactory, databaseFactoryFfi, getDatabasesPath;
-import 'package:synchroflite/synchroflite.dart' show CrdtChangeset, Hlc;
+
 import 'utils/serializable.dart' as s;
 
 void crdtTests(Database db, CrdtExecutor executor) {

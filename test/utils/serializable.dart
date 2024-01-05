@@ -15,9 +15,8 @@ class User extends BaseCrdtSerializable {
 
   final String? preferences;
 
-  User(int id, String hlc, String nodeId, String modified, int isDeleted,
-      this.name, this.birthDate, this.profilePicture, this.preferences)
-      : super(id, hlc, nodeId, modified, isDeleted);
+  User(int super.id, super.hlc, super.nodeId, super.modified, super.isDeleted,
+      this.name, this.birthDate, this.profilePicture, this.preferences);
 
   factory User.fromJson(Map<String, Object?> json) => _$UserFromJson(json);
 

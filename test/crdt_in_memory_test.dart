@@ -56,7 +56,7 @@ Future<void> main() async {
 }
 
 class EmptyDb extends GeneratedDatabase {
-  EmptyDb(QueryExecutor q) : super(q);
+  EmptyDb(super.q);
   @override
   final List<TableInfo> allTables = const [];
   @override
