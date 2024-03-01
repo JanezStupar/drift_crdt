@@ -1,3 +1,6 @@
+## 1.0.9
+- Add LazyDatabase implementation compatible with CRDT.
+
 ## 1.0.8
 - Bump Drift to 2.15.0 and synchroflite to 0.1.3
 
