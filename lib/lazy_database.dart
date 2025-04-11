@@ -17,6 +17,16 @@ class CrdtLazyDatabase extends QueryExecutor {
   get delegate => _delegate;
 
   @override
+  QueryExecutor beginExclusive() {
+    final dynamic exec = _delegate;
+    try {
+      return exec.beginExclusive() as QueryExecutor;
+    } catch (e) {
+      throw Exception('This method is not supported in Drift versions <2.19.0');
+    }
+  }
+
+  @override
   SqlDialect get dialect {
     // Drift reads dialect before database opened, so we must know in advance
     if (_delegateAvailable && _dialect != _delegate.dialect) {

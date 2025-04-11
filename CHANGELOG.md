@@ -1,3 +1,6 @@
+## 1.10.0
+- Replace the `synchroflite` library with `sqlite_crdt` 
+
 ## 1.0.9
 - Add LazyDatabase implementation compatible with CRDT.
 

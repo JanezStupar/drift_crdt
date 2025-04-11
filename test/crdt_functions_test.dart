@@ -176,6 +176,10 @@ void crdtTests(Database db, CrdtExecutor executor) {
         () async => db.select(db.users).get());
     expect(result, isNotNull);
     expect(result.length, equals(4));
+
+    final notDeleted2 = await db.select(db.users).get();
+    expect(notDeleted2, isNotNull);
+    expect(notDeleted2.length, equals(3));
   });
 
   test('queryDeleted in transaction', () async {
