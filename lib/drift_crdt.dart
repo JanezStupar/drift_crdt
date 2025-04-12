@@ -16,7 +16,8 @@ import 'package:sqlite_crdt/sqlite_crdt.dart';
 import 'package:sqlparser/sqlparser.dart';
 import 'package:sqlparser/utils/node_to_text.dart';
 
-export 'package:sqlite_crdt/sqlite_crdt.dart' show Hlc, CrdtChangeset;
+export 'package:sqlite_crdt/sqlite_crdt.dart'
+    show Hlc, CrdtChangeset, parseCrdtChangeset, CrdtTableChangeset;
 
 const _crdtDeletedOn = 'CRDT QUERY DELETED ON';
 const _crdtDeletedOff = 'CRDT QUERY DELETED OFF';

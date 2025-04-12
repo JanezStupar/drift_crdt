@@ -10,8 +10,8 @@ environment:
 
 dependencies:
   sqflite_common: ^2.5.4+5
-  drift: ^2.15.0
-  sqlparser: ^0.39.2
+  drift: ^2.26.0
+  sqlparser: ^0.41.0
   source_span: ^1.10.0
   sqflite: ^2.1.0
   path: ^1.8.0

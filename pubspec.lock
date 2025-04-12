@@ -222,7 +222,7 @@ packages:
     description:
       path: "extras/integration_tests/drift_testcases"
       ref: HEAD
-      resolved-ref: "17d477cb078fc2edef4873700e4483e4a4a55d8b"
+      resolved-ref: "0f7202b44ca96bf416ab3fe3080548a69d256100"
       url: "https://github.com/simolus3/drift.git"
     source: git
     version: "1.0.0"
@@ -669,7 +669,7 @@ packages:
     description:
       path: "."
       ref: "feature/automatic_to_explicit"
-      resolved-ref: "3b18c585250f04191c13d026d6dbfd23997f5b81"
+      resolved-ref: "9d49939a95b4a0db0508ee99e468f57cd1b2543f"
       url: "https://github.com/JanezStupar/sql_crdt/"
     source: git
     version: "3.0.3"
@@ -693,10 +693,10 @@ packages:
     dependency: "direct main"
     description:
       name: sqlparser
-      sha256: d77749237609784e337ec36c979d41f6f38a7b279df98622ae23929c8eb954a4
+      sha256: "27dd0a9f0c02e22ac0eb42a23df9ea079ce69b52bb4a3b478d64e0ef34a263ee"
       url: "https://pub.dev"
     source: hosted
-    version: "0.39.2"
+    version: "0.41.0"
   stack_trace:
     dependency: transitive
     description:
