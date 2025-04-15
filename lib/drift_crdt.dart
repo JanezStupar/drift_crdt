@@ -34,6 +34,9 @@ class SqliteTransactionCrdt {
   SqliteTransactionCrdt(this.txn);
 
   Future<void> execute(String sql, [List<Object?>? args]) async {
+    if (sql.contains('CREATE TABLE')) {
+      sql = DriftCrdtUtils.prepareCreateTableQuery(sql);
+    }
     await txn.execute(sql, args);
   }
 
@@ -68,6 +71,9 @@ class _CrdtQueryDelegate extends QueryDelegate {
 
   @override
   Future<void> runCustom(String statement, List<Object?> args) {
+    if (statement.contains('CREATE TABLE')) {
+      statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+    }
     return _transactionCrdt.execute(statement, args);
   }
 
@@ -77,14 +83,17 @@ class _CrdtQueryDelegate extends QueryDelegate {
   }
 
   @override
-  Future<QueryResult> runSelect(String statement, List<Object?> args) async {
+  Future<QueryResult> runSelect(String sql, List<Object?> args) async {
     SqlEngine parser = SqlEngine();
-    Statement parsed = (parser.parse(statement).rootNode) as Statement;
-    if (parsed is SelectStatement) {
-      DriftCrdtUtils.prepareSelectStatement(parsed, _queryDeleted);
-      statement = parsed.toSql();
+    final parsed = parser.parse(sql);
+    Statement statement = (parsed.rootNode) as Statement;
+    if (!DriftCrdtUtils.isSpecialQuery(parsed) &&
+        statement is SelectStatement) {
+      DriftCrdtUtils.prepareSelectStatement(statement, _queryDeleted);
+      sql = statement.toSql();
     }
-    final result = await _transactionCrdt.query(statement, args);
+
+    final result = await _transactionCrdt.query(sql, args);
     return QueryResult.fromRows(result);
   }
 
@@ -111,7 +120,11 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
     final batch = api.sqliteCrdt.batch();
 
     for (final arg in statements.arguments) {
-      batch.execute(statements.statements[arg.statementIndex], arg.arguments);
+      var statement = statements.statements[arg.statementIndex];
+      if (statement.contains('CREATE TABLE')) {
+        statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+      }
+      batch.execute(statement, arg.arguments);
     }
 
     await batch.commit();
@@ -213,7 +226,11 @@ class _CrdtDelegate extends DatabaseDelegate {
     final batch = sqliteCrdt.batch();
 
     for (final arg in statements.arguments) {
-      batch.execute(statements.statements[arg.statementIndex], arg.arguments);
+      var statement = statements.statements[arg.statementIndex];
+      if (statement.contains('CREATE TABLE')) {
+        statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+      }
+      batch.execute(statement, arg.arguments);
     }
 
     await batch.commit();
@@ -229,6 +246,9 @@ class _CrdtDelegate extends DatabaseDelegate {
         _queryDeleted = false;
         break;
       default:
+        if (statement.contains('CREATE TABLE')) {
+          statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+        }
         return sqliteCrdt.execute(statement, args);
     }
     return Future.value();
@@ -243,14 +263,16 @@ class _CrdtDelegate extends DatabaseDelegate {
   }
 
   @override
-  Future<QueryResult> runSelect(String statement, List<Object?> args) async {
+  Future<QueryResult> runSelect(String sql, List<Object?> args) async {
     SqlEngine parser = SqlEngine();
-    Statement parsed = (parser.parse(statement).rootNode) as Statement;
-    if (parsed is SelectStatement) {
-      DriftCrdtUtils.prepareSelectStatement(parsed, _queryDeleted);
-      statement = parsed.toSql();
+    final parsed = parser.parse(sql);
+    Statement statement = (parsed.rootNode) as Statement;
+    if (!DriftCrdtUtils.isSpecialQuery(parsed) &&
+        statement is SelectStatement) {
+      DriftCrdtUtils.prepareSelectStatement(statement, _queryDeleted);
+      sql = statement.toSql();
     }
-    final result = await sqliteCrdt.query(statement, args);
+    final result = await sqliteCrdt.query(sql, args);
     return QueryResult.fromRows(result);
   }
 
