@@ -1,3 +1,6 @@
+## 1.0.11
+- Downgrade Drift to 2.26.0 due to version conflict with kiwi downstream
+
 ## 1.0.10
 - Replace the `synchroflite` library with `sqlite_crdt` 
 
