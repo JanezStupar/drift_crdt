@@ -1,4 +1,4 @@
-## 1.10.0
+## 1.0.10
 - Replace the `synchroflite` library with `sqlite_crdt` 
 
 ## 1.0.9

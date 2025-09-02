@@ -1,6 +1,6 @@
 name: drift_crdt
 description: A Flutter-only implementation of a drift CRDT database, based on the `sqlite_crdt` package and `sqflite`.
-version: 1.1.0
+version: 1.0.10
 repository: https://github.com/JanezStupar/drift_crdt.git
 homepage: https://janezstupar.com
 issue_tracker: https://github.com/JanezStupar/drift_crdt/issues
@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   sqflite_common: ^2.5.4+5
-  drift: ^2.26.0
+  drift: ^2.28.0
   sqlparser: ^0.41.0
   source_span: ^1.10.0
   sqflite: ^2.1.0
@@ -18,7 +18,7 @@ dependencies:
   flutter:
     sdk: flutter
   sqlite_crdt: ^3.0.0
-  sql_crdt:
+  sql_crdt: ^3.0.3
   json_serializable: ^6.2.0
   json_annotation: ^4.8.1
 
@@ -47,9 +47,3 @@ flutter:
   assets:
     - test_asset.db
     - test_asset_migration.db
-
-dependency_overrides:
-  sql_crdt:
-    git:
-      url: https://github.com/JanezStupar/sql_crdt/
-      ref: feature/automatic_to_explicit

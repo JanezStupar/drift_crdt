@@ -37,67 +37,29 @@ However, the migrations can be made to work.
 
 #### 1. Create the migrations as usual.
 #### 2. Create closures for generating the columns
-Say the DRIFT generated output for a table is this:
+Add CRDT related closures to the top of the `schema_versions.dart` file like this:
 ```dart
-i1.GeneratedColumn<String> _column_0(String aliasedName) =>
-    i1.GeneratedColumn<String>('id', aliasedName, false,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<DateTime> _column_1(String aliasedName) =>
-    i1.GeneratedColumn<DateTime>('start', aliasedName, false,
-        type: i1.DriftSqlType.dateTime, defaultValue: currentDateAndTime);
-i1.GeneratedColumn<DateTime> _column_2(String aliasedName) =>
-    i1.GeneratedColumn<DateTime>('end', aliasedName, true,
-        type: i1.DriftSqlType.dateTime);
-i1.GeneratedColumn<String> _column_3(String aliasedName) =>
-    i1.GeneratedColumn<String>('title', aliasedName, false,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<String> _column_4(String aliasedName) =>
-    i1.GeneratedColumn<String>('body', aliasedName, true,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<String> _column_5(String aliasedName) =>
-    i1.GeneratedColumn<String>('category', aliasedName, true,
-        type: i1.DriftSqlType.string);
-```
-
-Add CRDT related closures like this:
-```dart
-
-i1.GeneratedColumn<String> _column_0(String aliasedName) =>
-    i1.GeneratedColumn<String>('id', aliasedName, false,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<DateTime> _column_1(String aliasedName) =>
-    i1.GeneratedColumn<DateTime>('start', aliasedName, false,
-        type: i1.DriftSqlType.dateTime, defaultValue: currentDateAndTime);
-i1.GeneratedColumn<DateTime> _column_2(String aliasedName) =>
-    i1.GeneratedColumn<DateTime>('end', aliasedName, true,
-        type: i1.DriftSqlType.dateTime);
-i1.GeneratedColumn<String> _column_3(String aliasedName) =>
-    i1.GeneratedColumn<String>('title', aliasedName, false,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<String> _column_4(String aliasedName) =>
-    i1.GeneratedColumn<String>('body', aliasedName, true,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<String> _column_5(String aliasedName) =>
-    i1.GeneratedColumn<String>('category', aliasedName, true,
-        type: i1.DriftSqlType.string);
-i1.GeneratedColumn<int> _column_6(String aliasedName) =>
+i1.GeneratedColumn<int> _column_is_deleted(String aliasedName) =>
     i1.GeneratedColumn<int>('is_deleted', aliasedName, false,
         type: i1.DriftSqlType.int, defaultValue: i1.Constant(0));
-i1.GeneratedColumn<String> _column_7(String aliasedName) =>
-    i1.GeneratedColumn<String>('hlc', aliasedName, false,
-      type: i1.DriftSqlType.string,);
-i1.GeneratedColumn<String> _column_8(String aliasedName) =>
+i1.GeneratedColumn<String> _column_hlc(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'hlc',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+    );
+i1.GeneratedColumn<String> _column_node_id(String aliasedName) =>
     i1.GeneratedColumn<String>('node_id', aliasedName, false,
         type: i1.DriftSqlType.string);
-i1.GeneratedColumn<String> _column_9(String aliasedName) =>
+i1.GeneratedColumn<String> _column_modified(String aliasedName) =>
     i1.GeneratedColumn<String>('modified', aliasedName, false,
         type: i1.DriftSqlType.string);
-
 ```
 
 #### 3. Add the CRDT columns to the schema_versions
 
-Assume the following columns field inside the `VersionedTable`
+Assuming the columns field inside the `VersionedTable` object looks like this:
 ```dart
   late final Shape0 epochs = Shape0(
     source: i0.VersionedTable(
@@ -137,65 +99,22 @@ Change it like this:
         _column_3,
         _column_4,
         _column_5,
-        _column_6,
-        _column_7,
-        _column_8,
-        _column_9
+        _column_is_deleted,
+        _column_hlc,
+        _column_node_id,
+        _column_modified,
       ],
       attachedDatabase: database,
     ),
     alias: null);
 ```
 
-#### 4. add the GeneratedColumns to the Shape class
+Then proceed to add the CRDT column references to every single shape class within the schema_versions file.
 
-Shape class for every table goes from this:
-```dart
-class Shape0 extends i0.VersionedTable {
-  Shape0({required super.source, required super.alias}) : super.aliased();
-  i1.GeneratedColumn<String> get id =>
-      columnsByName['id']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<DateTime> get start =>
-      columnsByName['start']! as i1.GeneratedColumn<DateTime>;
-  i1.GeneratedColumn<DateTime> get end =>
-      columnsByName['end']! as i1.GeneratedColumn<DateTime>;
-  i1.GeneratedColumn<String> get title =>
-      columnsByName['title']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<String> get body =>
-      columnsByName['body']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<String> get category =>
-      columnsByName['category']! as i1.GeneratedColumn<String>;
-}
+I would love to automate this process, but I don't have the tools to do it yet. If this plugin ever gets more popular,
+I am sure Simon will add a feature that will enable us to inject these shapes.
 
-```
-
-To this
-```dart
-class Shape0 extends i0.VersionedTable {
-  Shape0({required super.source, required super.alias}) : super.aliased();
-  i1.GeneratedColumn<String> get id =>
-      columnsByName['id']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<DateTime> get start =>
-      columnsByName['start']! as i1.GeneratedColumn<DateTime>;
-  i1.GeneratedColumn<DateTime> get end =>
-      columnsByName['end']! as i1.GeneratedColumn<DateTime>;
-  i1.GeneratedColumn<String> get title =>
-      columnsByName['title']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<String> get body =>
-      columnsByName['body']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<String> get category =>
-      columnsByName['category']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<int> get isDeleted =>
-      columnsByName['is_deleted']! as i1.GeneratedColumn<int>;
-  i1.GeneratedColumn<String> get hlc =>
-      columnsByName['hlc']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<String> get node_id =>
-      columnsByName['node_id']! as i1.GeneratedColumn<String>;
-  i1.GeneratedColumn<String> get modified =>
-      columnsByName['modified']! as i1.GeneratedColumn<String>;
-}
-```
-
+Until then, you will have to do it manually.
 
 ## Querying in drift_crdt and you!
 When performing queries by default deleted records are not returned.
