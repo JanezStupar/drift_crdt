@@ -51,3 +51,6 @@ goenv.rc
 
 # binaries and generated files
 trackself_*_amd64.snap
+
+# LLM related
+CLAUDE.md

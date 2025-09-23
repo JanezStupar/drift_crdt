@@ -203,6 +203,29 @@ void crdtTests(Database db, CrdtExecutor executor) {
     expect(notDeleted, isNotNull);
     expect(notDeleted.length, equals(2));
   });
+
+  test('INSERT ... RETURNING with CRDT columns', () async {
+    // Test that INSERT ... RETURNING works correctly with CRDT-enhanced tables using Drift syntax
+    final newUser = UsersCompanion(
+      name: const Value('Test User'),
+      birthDate: Value(DateTime.fromMillisecondsSinceEpoch(946684800 * 1000)), // Jan 1, 2000
+    );
+
+    // Use Drift's insertReturning to insert and return the row
+    final insertedUser = await db.into(db.users).insertReturning(newUser);
+
+    expect(insertedUser, isNotNull);
+    expect(insertedUser.name, equals('Test User'));
+    expect(insertedUser.birthDate.millisecondsSinceEpoch, equals(946684800 * 1000));
+    expect(insertedUser.id, isA<int>()); // ID should be auto-generated
+
+    // Verify the record exists in the database
+    final queriedUser = await (db.select(db.users)
+          ..where((tbl) => tbl.id.equals(insertedUser.id)))
+        .getSingle();
+    expect(queriedUser.name, equals('Test User'));
+    expect(queriedUser.id, equals(insertedUser.id));
+  });
 }
 
 class CrdtExecutor extends TestExecutor {
