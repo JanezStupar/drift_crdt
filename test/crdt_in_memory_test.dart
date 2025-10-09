@@ -1,13 +1,10 @@
-import 'dart:io';
-
-import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/suite/crud_tests.dart';
 import 'package:drift_testcases/suite/custom_objects.dart';
 import 'package:drift_testcases/suite/transactions.dart';
 import 'package:drift_testcases/tests.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'
-    show databaseFactory, databaseFactoryFfi;
+
+import 'utils/test_backend.dart' as backend;
 
 class CrdtExecutor extends TestExecutor {
   // Nested transactions are not supported because the Sqflite backend doesn't
@@ -15,15 +12,21 @@ class CrdtExecutor extends TestExecutor {
   @override
   bool get supportsNestedTransactions => false;
 
+  final String _sqliteDbName = 'in_memory.db';
+
   @override
   DatabaseConnection createConnection() {
-    return DatabaseConnection(
-      CrdtQueryExecutor.inMemory(),
+    final executor = backend.createExecutor(
+      inMemory: backend.backendConfig.isSqlite,
+      sqliteDbName: _sqliteDbName,
     );
+    return DatabaseConnection(executor);
   }
 
   @override
-  Future deleteData() async {}
+  Future deleteData() async {
+    await backend.clearBackend(sqliteDbName: _sqliteDbName);
+  }
 }
 
 // TODO: remove this once we can run tests for migrations
@@ -47,11 +50,9 @@ void runSomeTests(TestExecutor executor) {
 }
 
 Future<void> main() async {
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    databaseFactory = databaseFactoryFfi;
-  }
+  await backend.configureBackendForPlatform();
 
-  var executor = CrdtExecutor();
+  final executor = CrdtExecutor();
   runSomeTests(executor);
 }
 

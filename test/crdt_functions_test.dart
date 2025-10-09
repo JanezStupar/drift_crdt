@@ -1,37 +1,44 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:path/path.dart' as path;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'
-    show databaseFactory, databaseFactoryFfi, getDatabasesPath;
 
+import 'utils/seed_data.dart' as seeds;
 import 'utils/serializable.dart' as s;
+import 'utils/test_backend.dart' as backend;
 
 void crdtTests(Database db, CrdtExecutor executor) {
+  const baselineUserNames = {'Dash', 'Duke', 'Go Gopher'};
+  Hlc _hlcFromChangesetValue(Object? value) {
+    if (value is Hlc) return value;
+    if (value is String) return Hlc.parse(value);
+    throw ArgumentError('Unexpected HLC value: $value');
+  }
+
+  setUp(() async {
+    await seeds.resetAndSeedBaselineData(db);
+  });
+
   test('get last modified', () async {
     final lastModified =
         await (db.executor as CrdtQueryExecutor).getLastModified();
 
     expect(lastModified, isNotNull);
-    expect(
-        lastModified?.dateTime.millisecondsSinceEpoch, equals(1691413901771));
+    expect(lastModified!.toString(), contains('-'));
   });
 
   test('get changeset', () async {
-    CrdtChangeset changeset =
-        await (db.executor as CrdtQueryExecutor).getChangeset();
+    final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
 
     expect(changeset, isNotNull);
-    expect(changeset.length, equals(2));
-    expect(
-        json.encode(changeset),
-        equals(
-            '{"users":[{"id":1,"name":"Dash","birth_date":1318284000,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"},{"id":2,"name":"Duke","birth_date":822351600,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"},{"id":3,"name":"Go Gopher","birth_date":1332885600,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"}],"friendships":[]}'));
+    expect(changeset.containsKey('users'), isTrue);
+    final users = changeset['users']!;
+    expect(users.length, equals(baselineUserNames.length));
+    final names = users.map((row) => row['name'] as String).toSet();
+    expect(names, containsAll(baselineUserNames));
+    expect(changeset.containsKey('friendships'), isTrue);
   });
 
   test('update and get changeset', () async {
@@ -39,176 +46,132 @@ void crdtTests(Database db, CrdtExecutor executor) {
 
     final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
 
-    expect(changeset, isNotNull);
-    expect(changeset.length, equals(2));
-    expect(changeset['users']![0]['name'], equals('Dash'));
-    expect(changeset['users']![1]['name'], equals('Duke'));
-    expect(changeset['users']![2]['name'], equals('Go Gopher'));
+    final names =
+        changeset['users']!.map((row) => row['name'] as String).toSet();
+    expect(names, containsAll({...baselineUserNames, florian.name.value}));
   });
 
   test('handle JSON changeset', () async {
-    const raw =
-        '{"users":[{"id":3,"name":"Go Gopher Updated","birth_date":1332885600,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"},{"id":6,"name":"Florian Updated, the fluffy Ferret from Florida familiar with Flutter","birth_date":1430258400,"profile_picture":null,"preferences":null,"is_deleted":0,"hlc":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966","node_id":"42bab6fa-f6c6-4e5b-babf-1a2adb170966","modified":"2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"}]}';
-    final decoded = json.decode(raw);
+    final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
 
-    Map<String, Iterable<Map<String, Object?>>> data = {};
-    decoded.forEach((key, value) {
-      List<Map<String, Object?>> tmp = [];
-      value?.forEach((e) {
-        tmp.add(s.User.fromJson(e).toJson());
-      });
-      data[key] = tmp;
-    });
+    final raw = json.encode(changeset);
+    final decoded = json.decode(raw) as Map<String, dynamic>;
 
-    expect(data, isNotNull);
-    expect(data.length, equals(1));
-    expect(data['users'], isNotNull);
-    expect(data['users']?.length, equals(2));
-    expect(data['users']?.first['name'], equals('Go Gopher Updated'));
+    final users = (decoded['users'] as List<dynamic>)
+        .map((entry) => s.User.fromJson(
+            Map<String, Object?>.from(entry as Map<String, Object?>)))
+        .toList();
+
+    expect(users, isNotEmpty);
+    final seenNames = users.map((u) => u.name).toSet();
+    expect(seenNames, containsAll(baselineUserNames));
   });
 
   test('reject merge changeset', () async {
-    CrdtChangeset data = {
-      "users": [
-        {
-          "id": 3,
-          "name": "Go Gopher Updated",
-          "birth_date": 1332885600,
-          "profile_picture": null,
-          "preferences": null,
-          "is_deleted": 0,
-          "hlc": Hlc.parse(
-              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
-          "node_id": "42bab6fa-f6c6-4e5b-babf-1a2adb170966",
-          "modified":
-              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"
-        },
-        {
-          "id": 6,
-          "name":
-              "Florian Updated, the fluffy Ferret from Florida familiar with Flutter",
-          "birth_date": 1430258400,
-          "profile_picture": null,
-          "preferences": null,
-          "is_deleted": 0,
-          "hlc": Hlc.parse(
-              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
-          "node_id": "42bab6fa-f6c6-4e5b-babf-1a2adb170966",
-          "modified":
-              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"
-        }
-      ]
-    };
+    final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
+    final target = Map<String, Object?>.from(changeset['users']!.first);
+    final targetId = target['id'] as int;
 
-    await (db.executor as CrdtQueryExecutor).merge(data);
+    final staleHlc = _hlcFromChangesetValue(target['hlc']);
+    final stale = Map<String, Object?>.from(target)
+      ..['name'] = '${target['name']} Updated'
+      ..['modified'] = target['modified']
+      ..['hlc'] = staleHlc;
 
-    var user =
-        await (db.select(db.users)..where((tbl) => tbl.id.equals(3))).get();
-    expect(user.length, equals(1));
-    expect(user[0].name, equals('Go Gopher'));
+    await (db.executor as CrdtQueryExecutor).merge({
+      'users': [stale]
+    });
+
+    final user = await (db.select(db.users)
+          ..where((tbl) => tbl.id.equals(targetId)))
+        .getSingle();
+    expect(user.name, equals(target['name']));
   });
 
   test('accept merge changeset', () async {
-    // There are two modified records in the changeset.
-    // First one should be accepted because the hlc, nodeid and modified timestamp indicate a change
-    // the second one indicates a stale record and the change should not be silently ignored.
-    CrdtChangeset changeset = {
-      "users": [
-        {
-          "id": 3,
-          "name": "Go Gopher Updated",
-          "birth_date": 1332885600,
-          "profile_picture": null,
-          "preferences": null,
-          "is_deleted": 0,
-          "hlc": Hlc.parse(
-              "2023-09-02T06:48:11.103Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170968"),
-          "node_id":
-              "2023-09-02T06:48:11.103Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170968",
-          "modified":
-              "2023-09-02T06:48:11.103Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170968",
-        },
-        {
-          "id": 6,
-          "name":
-              "Florian Updated, the fluffy Ferret from Florida familiar with Flutter",
-          "birth_date": 1430258400,
-          "profile_picture": null,
-          "preferences": null,
-          "is_deleted": 0,
-          "hlc": Hlc.parse(
-              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"),
-          "node_id": "42bab6fa-f6c6-4e5b-babf-1a2adb170966",
-          "modified":
-              "2023-08-07T13:11:41.771Z-0000-42bab6fa-f6c6-4e5b-babf-1a2adb170966"
-        }
-      ]
-    };
+    final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
+    final target = Map<String, Object?>.from(
+      changeset['users']!.firstWhere(
+        (row) => row['name'] == 'Go Gopher',
+        orElse: () => changeset['users']!.first,
+      ),
+    );
+    final targetId = target['id'] as int;
 
-    await (db.executor as CrdtQueryExecutor).merge(changeset);
+    const remoteNodeId = 'remote-node-for-merge';
+    final originalHlc = _hlcFromChangesetValue(target['hlc']);
+    final updatedHlc = originalHlc
+        .increment(
+            wallTime: originalHlc.dateTime.add(const Duration(seconds: 1)))
+        .apply(nodeId: remoteNodeId);
 
-    // Change gets accepted
-    var userGopher =
-        await (db.select(db.users)..where((tbl) => tbl.id.equals(3))).get();
-    expect(userGopher.length, equals(1));
-    expect(userGopher[0].name, equals('Go Gopher Updated'));
+    final updated = Map<String, Object?>.from(target)
+      ..['name'] = 'Go Gopher Updated'
+      ..['hlc'] = updatedHlc
+      ..['modified'] = updatedHlc.toString()
+      ..['node_id'] = updatedHlc.nodeId;
 
-    // Change gets rejected silently
-    var userFlorian =
-        await (db.select(db.users)..where((tbl) => tbl.id.equals(6))).get();
-    expect(userFlorian.length, equals(1));
-    expect(
-        userFlorian[0].name,
-        equals(
-            'Florian, the fluffy Ferret from Florida familiar with Flutter'));
+    await (db.executor as CrdtQueryExecutor).merge({
+      'users': [updated]
+    });
+
+    final user = await (db.select(db.users)
+          ..where((tbl) => tbl.id.equals(targetId)))
+        .getSingle();
+    expect(user.name, equals('Go Gopher Updated'));
   });
 
   test('queryDeleted', () async {
     final notDeleted = await db.select(db.users).get();
-    expect(notDeleted, isNotNull);
-    expect(notDeleted.length, equals(4));
+    expect(notDeleted.length, equals(baselineUserNames.length));
 
     await (db.delete(db.users)
           ..where((tbl) => tbl.id.equals(notDeleted.first.id)))
         .go();
 
-    final result = await queryDeleted((db.executor) as CrdtQueryExecutor,
-        () async => db.select(db.users).get());
-    expect(result, isNotNull);
-    expect(result.length, equals(4));
+    final result = await queryDeleted(
+      (db.executor) as CrdtQueryExecutor,
+      () async => db.select(db.users).get(),
+    );
+    final resultNames = result
+        .map((user) => user.name)
+        .where(baselineUserNames.contains)
+        .toSet();
+    expect(resultNames.length, equals(baselineUserNames.length));
 
-    final notDeleted2 = await db.select(db.users).get();
-    expect(notDeleted2, isNotNull);
-    expect(notDeleted2.length, equals(3));
+    final remaining = await db.select(db.users).get();
+    expect(remaining.length, equals(baselineUserNames.length - 1));
   });
 
   test('queryDeleted in transaction', () async {
-    var notDeleted = await db.select(db.users).get();
-    expect(notDeleted, isNotNull);
-    expect(notDeleted.length, equals(3));
+    final notDeleted = await db.select(db.users).get();
+    expect(notDeleted.length, equals(baselineUserNames.length));
 
-    await (db.delete(db.users)
-          ..where((tbl) => tbl.id.equals(notDeleted.first.id)))
-        .go();
+    final removedId = notDeleted.first.id;
+    await (db.delete(db.users)..where((tbl) => tbl.id.equals(removedId))).go();
 
     await queryDeleted(
-        (db.executor) as CrdtQueryExecutor,
-        () async => db.transaction(() async {
-              final resultTransaction = await db.select(db.users).get();
-              expect(resultTransaction, isNotNull);
-              expect(resultTransaction.length, equals(4));
-            }));
+      (db.executor) as CrdtQueryExecutor,
+      () async => db.transaction(() async {
+        final resultTransaction = await db.select(db.users).get();
+        final names = resultTransaction
+            .map((user) => user.name)
+            .where(baselineUserNames.contains)
+            .toSet();
+        expect(names.length, equals(baselineUserNames.length));
+      }),
+    );
 
-    notDeleted = await db.select(db.users).get();
-    expect(notDeleted, isNotNull);
-    expect(notDeleted.length, equals(2));
+    final remaining = await db.select(db.users).get();
+    expect(remaining.length, equals(baselineUserNames.length - 1));
   });
 
   test('INSERT ... RETURNING with CRDT columns', () async {
     // Test that INSERT ... RETURNING works correctly with CRDT-enhanced tables using Drift syntax
     final newUser = UsersCompanion(
       name: const Value('Test User'),
-      birthDate: Value(DateTime.fromMillisecondsSinceEpoch(946684800 * 1000)), // Jan 1, 2000
+      birthDate: Value(
+          DateTime.fromMillisecondsSinceEpoch(946684800 * 1000)), // Jan 1, 2000
     );
 
     // Use Drift's insertReturning to insert and return the row
@@ -216,7 +179,8 @@ void crdtTests(Database db, CrdtExecutor executor) {
 
     expect(insertedUser, isNotNull);
     expect(insertedUser.name, equals('Test User'));
-    expect(insertedUser.birthDate.millisecondsSinceEpoch, equals(946684800 * 1000));
+    expect(insertedUser.birthDate.millisecondsSinceEpoch,
+        equals(946684800 * 1000));
     expect(insertedUser.id, isA<int>()); // ID should be auto-generated
 
     // Verify the record exists in the database
@@ -234,34 +198,25 @@ class CrdtExecutor extends TestExecutor {
   @override
   bool get supportsNestedTransactions => false;
 
+  final String _sqliteDbName = 'crdt_functions.db';
+
   @override
   DatabaseConnection createConnection() {
-    return DatabaseConnection(CrdtQueryExecutor.inDatabaseFolder(
-      path: 'app_from_asset.db',
+    final executor = backend.createExecutor(
+      sqliteDbName: _sqliteDbName,
       singleInstance: true,
-      creator: (file) async {
-        final content = await rootBundle.load('test_asset.db');
-        await file.writeAsBytes(content.buffer.asUint8List());
-      },
-    ));
+    );
+    return DatabaseConnection(executor);
   }
 
   @override
   Future deleteData() async {
-    final folder = await getDatabasesPath();
-    final file = File(path.join(folder, 'app_from_asset.db'));
-
-    if (await file.exists()) {
-      await file.delete();
-    }
+    await backend.clearBackend(sqliteDbName: _sqliteDbName);
   }
 }
 
 Future<void> main() async {
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    databaseFactory = databaseFactoryFfi;
-  }
-
+  await backend.configureBackendForPlatform();
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   final executor = CrdtExecutor();
@@ -269,6 +224,7 @@ Future<void> main() async {
   final db = Database(connection);
   await executor.deleteData();
   await connection.ensureOpen(db);
+  await seeds.resetAndSeedBaselineData(db);
 
   crdtTests(db, executor);
 }

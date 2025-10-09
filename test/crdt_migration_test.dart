@@ -1,13 +1,11 @@
-import 'dart:io';
-
 import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart' as tc;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'
-    show databaseFactory, databaseFactoryFfi;
+
+import 'utils/test_backend.dart' as backend;
 
 void crdtMigrationTests() {
   test('on nonmigrated database an error occurs', () async {
@@ -53,10 +51,17 @@ void crdtMigrationTests() {
 }
 
 Future<void> main() async {
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    databaseFactory = databaseFactoryFfi;
+  await backend.configureBackendForPlatform();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  if (backend.backendConfig.isPostgres) {
+    test(
+      'migration tests are sqlite-specific',
+      () {},
+      skip: 'Migration fixtures rely on sqlite asset databases.',
+    );
+    return;
   }
 
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   crdtMigrationTests();
 }

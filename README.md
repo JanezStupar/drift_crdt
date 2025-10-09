@@ -1,15 +1,25 @@
 ## drift_crdt
 
 `drift_crdt` contains a CRDT drift database implementation based on the `sqflite`
-package. This package is a plugin for Drift by Simon Binder and is based on
+package and now also supports PostgreSQL through Drift's `drift_postgres`
+integration. This package is a plugin for Drift by Simon Binder and is based on
 Simon Binder's `drift_sqflite` package.
 
 For more information on `drift`, see its [documentation](https://drift.simonbinder.eu/docs/).
 
+### What's new in 1.1.0
+
+- Added support for Postgres.
+- Unified CRDT executor so both SQLite and Postgres share the same high-level API.
+- Added automatic placeholder normalization (`?` ↔ `$n`) and `RETURNING` propagation for queries.
+- Hardened CRDT transaction delegation, including binary parameter handling and consistent deleted-row filtering.
+
 ### Usage
 
 The `CrdtQueryExecutor` class can be passed to the constructor of your drift database
-class to make it use `sqflite`.
+class to make it use `sqflite` or PostgreSQL, depending on which constructor you pick.
+
+#### SQLite (sqflite)
 
 ```dart
 @DriftDatabase(tables: [Todos, Categories])
@@ -28,7 +38,55 @@ QueryExecutor _openConnection() {
 }
 ```
 
+#### PostgreSQL
+
+Make sure you depend on `drift_postgres` and `postgres` as described in the
+[official drift documentation](https://drift.simonbinder.eu/platforms/postgres/),
+then wire up the CRDT executor like any other `PgDatabase`:
+
+```dart
+QueryExecutor _openPostgresConnection() {
+  return CrdtQueryExecutor.postgres(
+    endpoint: Endpoint(
+      host: 'localhost',
+      port: 5432,
+      database: 'app',
+      username: 'postgres',
+      password: 'postgres',
+    ),
+  );
+}
+```
+
+If you are managing connections yourself (for instance through a `Pool`), use
+`CrdtQueryExecutor.postgresOpened(session)` instead of the factory shown above.
+
+### Running tests
+
+Tests default to the SQLite backend. To run them against Postgres, set
+`DRIFT_CRDT_TEST_BACKEND=postgres` and provide connection details via the
+following environment variables (all optional):
+
+- `DRIFT_CRDT_PG_HOST` (default `localhost`)
+- `DRIFT_CRDT_PG_PORT` (default `5432`)
+- `DRIFT_CRDT_PG_DB` (default `postgres`)
+- `DRIFT_CRDT_PG_USER` / `DRIFT_CRDT_PG_PASSWORD`
+
+Example:
+
+```bash
+DRIFT_CRDT_TEST_BACKEND=postgres \
+DRIFT_CRDT_PG_USER=postgres \
+DRIFT_CRDT_PG_PASSWORD=postgres \
+dart test
+```
+
+Each suite truncates the configured database, so use a dedicated Postgres
+instance when running tests.
+
 ### Drift migrations
+
+For Postgres, please refer to [this document](https://drift.simonbinder.eu/platforms/postgres/#setup)
 
 At the moment migrations are not supported. This is because the CRDT implementation hijacks the SQL queries and
 modifies them to manage the CRDT functions.

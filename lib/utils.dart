@@ -1,8 +1,35 @@
+import 'package:collection/collection.dart';
 import 'package:source_span/source_span.dart';
 import 'package:sqlparser/sqlparser.dart';
 import 'package:sqlparser/utils/node_to_text.dart';
 
 class DriftCrdtUtils {
+  /// Transforms automatic (unnumbered) ? placeholders into explicit ?N placeholders.
+  /// This ensures all placeholders have explicit indices (e.g., ?1, ?2, ?3).
+  /// This is important when adding WHERE clauses that might reorder or add new placeholders.
+  static void transformAutomaticExplicit(Statement statement) {
+    statement.allDescendants
+        .whereType<NumberedVariable>()
+        .forEachIndexed((i, ref) {
+      ref.explicitIndex ??= i + 1;
+    });
+  }
+
+  /// Builds SQL suitable for PostgreSQL while preserving originally quoted
+  /// identifiers and expanding SQLite-specific tokens like `ISNULL`.
+  static String buildPostgresSql(ParseResult parsed, Statement statement) {
+    final quotedIdentifiers = <String>{};
+    for (final token in parsed.tokens) {
+      if (token is IdentifierToken && token.escaped) {
+        quotedIdentifiers.add(token.identifier);
+      }
+    }
+
+    final builder = _PostgresNodeSqlBuilder(quotedIdentifiers);
+    builder.visit(statement, null);
+    return builder.buffer.toString();
+  }
+
   static void _prepareSelectSubquery(SelectStatementAsSource subquery) {
     final innerStatement = subquery.statement;
     if (innerStatement is SelectStatement) {
@@ -74,16 +101,13 @@ class DriftCrdtUtils {
     }
 
     for (final table in rootTables) {
-      Reference reference;
-      if (table.as != null) {
-        reference = Reference(
-          columnName: 'is_deleted',
-          entityName: table.as,
-          schemaName: table.schemaName,
-        );
-      } else {
-        reference = Reference(columnName: 'is_deleted');
-      }
+      final entityName = table.as ?? table.tableName;
+      final schemaName = table.as == null ? table.schemaName : null;
+      final reference = Reference(
+        columnName: 'is_deleted',
+        entityName: entityName,
+        schemaName: schemaName,
+      );
 
       // Do we filter out the deleted record or not
       Expression expression;
@@ -137,17 +161,83 @@ class DriftCrdtUtils {
       if (statement.from != null) {
         if (statement.from is TableReference) {
           final table = statement.from as TableReference;
+
+          // SQLite system tables
           if ([
             'sqlite_schema',
             'sqlite_master',
             'sqlite_temp_schema',
-            'sqlite_temp_master'
+            'sqlite_temp_master',
           ].contains(table.tableName)) {
+            return true;
+          }
+
+          // PostgreSQL system tables
+          if ([
+            'pg_catalog',
+            'information_schema',
+            'pg_class',
+            'pg_index',
+            'pg_attribute',
+            'pg_tables',
+          ].contains(table.tableName)) {
+            return true;
+          }
+
+          // Check for schema-qualified system tables (e.g., pg_catalog.pg_tables)
+          if (table.schemaName != null &&
+              ['pg_catalog', 'information_schema'].contains(table.schemaName)) {
             return true;
           }
         }
       }
     }
     return false;
+  }
+}
+
+class _PostgresNodeSqlBuilder extends NodeSqlBuilder {
+  final Set<String> _quotedIdentifiers;
+
+  _PostgresNodeSqlBuilder(this._quotedIdentifiers);
+
+  @override
+  String escapeIdentifier(String identifier) {
+    if (_quotedIdentifiers.contains(identifier)) {
+      final escaped = identifier.replaceAll('"', '""');
+      return '"$escaped"';
+    }
+    return super.escapeIdentifier(identifier);
+  }
+
+  @override
+  void identifier(String identifier,
+      {bool spaceBefore = true, bool spaceAfter = true}) {
+    if (_quotedIdentifiers.contains(identifier)) {
+      final escaped = identifier.replaceAll('"', '""');
+      symbol('"$escaped"', spaceBefore: spaceBefore, spaceAfter: spaceAfter);
+      return;
+    }
+    super.identifier(identifier,
+        spaceBefore: spaceBefore, spaceAfter: spaceAfter);
+  }
+
+  @override
+  void visitIsNullExpression(IsNullExpression e, void arg) {
+    visit(e.operand, arg);
+    keyword(TokenType.$is);
+    if (e.negated) {
+      keyword(TokenType.not);
+    }
+    keyword(TokenType.$null);
+  }
+
+  @override
+  void visitParentheses(Parentheses e, void arg) {
+    final insertSpace = needsSpace;
+    symbol('(', spaceBefore: insertSpace);
+    visit(e.expression, arg);
+    symbol(')');
+    needsSpace = true;
   }
 }

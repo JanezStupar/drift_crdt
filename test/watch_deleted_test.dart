@@ -1,47 +1,35 @@
-import 'dart:io';
-
-import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:path/path.dart' as path;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'
-    show databaseFactory, databaseFactoryFfi, getDatabasesPath;
+
+import 'utils/seed_data.dart' as seeds;
+import 'utils/test_backend.dart' as backend;
 
 class _CrdtExecutor extends TestExecutor {
   @override
   bool get supportsNestedTransactions => false;
 
+  final String _sqliteDbName = 'watch_deleted.db';
+
   @override
   DatabaseConnection createConnection() {
-    return DatabaseConnection(CrdtQueryExecutor.inDatabaseFolder(
-      path: 'app_from_asset.db',
+    final executor = backend.createExecutor(
+      sqliteDbName: _sqliteDbName,
       singleInstance: true,
-      creator: (file) async {
-        final content = await rootBundle.load('test_asset.db');
-        await file.writeAsBytes(content.buffer.asUint8List());
-      },
-    ));
+    );
+    return DatabaseConnection(executor);
   }
 
   @override
   Future deleteData() async {
-    final folder = await getDatabasesPath();
-    final file = File(path.join(folder, 'app_from_asset.db'));
-
-    if (await file.exists()) {
-      await file.delete();
-    }
+    await backend.clearBackend(sqliteDbName: _sqliteDbName);
   }
 }
 
-void main() {
+Future<void> main() async {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    databaseFactory = databaseFactoryFfi;
-  }
+  await backend.configureBackendForPlatform();
 
   group('watch() on deleted rows', () {
     late _CrdtExecutor executor;
@@ -53,6 +41,7 @@ void main() {
       db = Database(connection);
       await executor.deleteData();
       await connection.ensureOpen(db);
+      await seeds.resetAndSeedBaselineData(db);
     });
 
     tearDownAll(() async {

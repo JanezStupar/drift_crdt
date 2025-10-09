@@ -7,11 +7,11 @@ part of 'serializable.dart';
 // **************************************************************************
 
 User _$UserFromJson(Map<String, dynamic> json) => User(
-      json['id'] as int,
+      (json['id'] as num).toInt(),
       json['hlc'] as String,
       json['node_id'] as String,
       json['modified'] as String,
-      json['is_deleted'] as int,
+      (json['is_deleted'] as num).toInt(),
       json['name'] as String,
       json['birth_date'] as num,
       json['profile_picture'] as String?,

@@ -1,3 +1,9 @@
+## 1.1.0
+- Added a `CrdtQueryExecutor.postgres` constructor and Postgres-specific delegates so CRDT workflows now run on `postgres_crdt`.
+- Normalized SQL placeholder handling across SQLite and Postgres, including support for `$n` syntax and consistent `RETURNING` clause mapping.
+- Extended CRDT transaction plumbing and utilities to share code between backends while preserving automatic `is_deleted` filtering.
+- Improved binary (`Uint8List`) parameter binding for Postgres and removed noisy debug logging throughout the stack.
+
 ## 1.0.11
 - Downgrade Drift to 2.26.0 due to version conflict with kiwi downstream
 
