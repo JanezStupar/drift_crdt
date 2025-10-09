@@ -54,3 +54,4 @@ trackself_*_amd64.snap
 
 # LLM related
 CLAUDE.md
+.claude/
