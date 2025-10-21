@@ -1,3 +1,6 @@
+## 1.1.1
+- Ensure default changeset queries order records by primary key (typically `id`) and document the behavior.
+
 ## 1.1.0
 - Added a `CrdtQueryExecutor.postgres` constructor and Postgres-specific delegates so CRDT workflows now run on `postgres_crdt`.
 - Normalized SQL placeholder handling across SQLite and Postgres, including support for `$n` syntax and consistent `RETURNING` clause mapping.

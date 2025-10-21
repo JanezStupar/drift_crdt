@@ -41,6 +41,33 @@ void crdtTests(Database db, CrdtExecutor executor) {
     expect(changeset.containsKey('friendships'), isTrue);
   });
 
+  test('changeset rows ordered by id', () async {
+    final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
+
+    changeset.forEach((table, records) {
+      if (records.isEmpty) {
+        return;
+      }
+
+      final hasComparableIds =
+          records.every((row) => row['id'] is Comparable<Object?>);
+      if (!hasComparableIds) {
+        return;
+      }
+
+      final ids =
+          records.map((row) => row['id'] as Comparable<Object?>).toList();
+      final sortedIds = List<Comparable<Object?>>.from(ids)
+        ..sort(Comparable.compare);
+
+      expect(
+        ids,
+        sortedIds,
+        reason: 'Table $table changeset records are not ordered by id.',
+      );
+    });
+  });
+
   test('update and get changeset', () async {
     await db.into(db.users).insert(florian);
 

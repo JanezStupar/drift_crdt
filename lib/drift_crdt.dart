@@ -833,6 +833,8 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// [exceptNodeId] do not return changes for the given node
   /// [modifiedOn] only return changes that were modified on the given timestamp
   /// [modifiedAfter] only return changes that were modified after the given timestamp
+  /// When [customQueries] is omitted, each generated query orders rows by the
+  /// table's primary key to ensure deterministic changesets.
   Future<CrdtChangeset> getChangeset({
     Map<String, Query>? customQueries,
     Iterable<String>? onlyTables,
@@ -842,9 +844,28 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     Hlc? modifiedAfter,
   }) async {
     final crdt = _sqlCrdt;
+    var effectiveQueries = customQueries;
+
+    if (effectiveQueries == null) {
+      final tables = onlyTables != null
+          ? onlyTables.toList()
+          : (await crdt.getTables()).toList();
+
+      final queries = <String, Query>{};
+      for (final table in tables) {
+        final orderBy = await _orderByPrimaryKeys(crdt, table);
+        queries[table] = (
+          'SELECT * FROM $table$orderBy',
+          const <Object?>[]
+        );
+      }
+      effectiveQueries = queries;
+    }
+
     return crdt.getChangeset(
-        customQueries: customQueries,
+        customQueries: effectiveQueries,
         onlyTables: onlyTables,
+        onlyNodeId: onlyNodeId,
         exceptNodeId: exceptNodeId,
         modifiedOn: modifiedOn,
         modifiedAfter: modifiedAfter);
@@ -854,6 +875,17 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   Future<void> merge(CrdtChangeset changeset) async {
     final crdt = _sqlCrdt;
     return crdt.merge(changeset);
+  }
+
+  /// Builds an ORDER BY clause for the table's primary key columns.
+  /// Returns an empty string when the table exposes no primary key metadata.
+  Future<String> _orderByPrimaryKeys(SqlCrdt crdt, String table) async {
+    final keys = (await crdt.getTableKeys(table)).toList();
+    if (keys.isEmpty) {
+      return '';
+    }
+    final orderColumns = keys.join(', ');
+    return ' ORDER BY $orderColumns';
   }
 }
 

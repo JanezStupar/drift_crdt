@@ -202,6 +202,7 @@ See [CrdtQueryExecutor.getChangeset](/lib/drift_crdt.dart) for more information.
 ```dart
   final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
 ```
+- By default, rows in each table of the returned changeset are ordered by the table's primary key (typically the `id` column) so downstream consumers receive deterministic batches.
 
 Use 'CrdtQueryExecutor.merge' to merge a changeset into the database.
 See [CrdtQueryExecutor.merge](/lib/drift_crdt.dart) for more information.
