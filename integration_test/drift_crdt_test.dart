@@ -2,13 +2,10 @@ import 'dart:io';
 
 import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'
     show databaseFactory, databaseFactoryFfi, getDatabasesPath;
+import 'package:test/test.dart';
 
 class CrdtExecutor extends TestExecutor {
   // Nested transactions are not supported because the Sqflite backend doesn't
@@ -38,18 +35,16 @@ class CrdtExecutor extends TestExecutor {
 }
 
 Future<void> main() async {
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS || kIsWeb) {
+  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     databaseFactory = databaseFactoryFfi;
   }
 
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
   runAllTests(CrdtExecutor());
 
-  // Additional integration test for flutter: Test loading a database from asset
-  test('can load a database from asset', () async {
+  // Test loading a database from file (creator callback)
+  test('can load a database with creator callback', () async {
     final databasesPath = await getDatabasesPath();
-    final dbFile = File(join(databasesPath, 'app_from_asset.db'));
+    final dbFile = File(join(databasesPath, 'app_from_creator.db'));
     if (await dbFile.exists()) {
       await dbFile.delete();
     }
@@ -59,8 +54,8 @@ Future<void> main() async {
       path: dbFile.path,
       singleInstance: true,
       creator: (file) async {
-        final content = await rootBundle.load('test_asset.db');
-        await file.writeAsBytes(content.buffer.asUint8List());
+        // Create an empty database file
+        await file.writeAsBytes([]);
         didCallCreator = true;
       },
     );

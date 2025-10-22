@@ -1,6 +1,5 @@
 import 'package:drift_testcases/tests.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
+import 'package:test/test.dart';
 
 import 'utils/seed_data.dart' as seeds;
 import 'utils/test_backend.dart' as backend;
@@ -27,8 +26,6 @@ class _CrdtExecutor extends TestExecutor {
 }
 
 Future<void> main() async {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
   await backend.configureBackendForPlatform();
 
   group('watch() on deleted rows', () {

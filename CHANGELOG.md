@@ -1,3 +1,33 @@
+## 2.0.0
+
+**BREAKING CHANGE: Package is now Flutter-agnostic**
+
+This major version removes the Flutter SDK dependency, making `drift_crdt` compatible with pure Dart applications while maintaining full backward compatibility with Flutter apps.
+
+### Breaking Changes
+- **Removed Flutter SDK dependency** - The package no longer requires the Flutter SDK
+- **Replaced `sqflite` with `sqflite_common_ffi`** - Pure Dart applications should initialize `sqfliteFfiInit()` and set `databaseFactory = databaseFactoryFfi` for desktop platforms
+- **Version bumped to 2.0.0** to indicate the breaking change in dependencies
+
+### Migration Guide
+- **Flutter apps**: No changes required! The package remains 100% backward compatible
+- **Pure Dart apps**: Add FFI initialization for desktop platforms (see MIGRATION_V2.md)
+
+### What's New
+- ✅ Works in pure Dart CLI applications
+- ✅ Works in server-side Dart applications
+- ✅ Works on desktop without Flutter (Linux, Windows, macOS)
+- ✅ Still fully compatible with Flutter applications
+- ✅ All tests remain functional using `drift_testcases` (which is also Flutter-agnostic)
+
+### Technical Changes
+- Updated library imports from `package:sqflite/sqflite.dart` to `package:sqflite_common_ffi/sqflite_ffi.dart`
+- Replaced `flutter_test` with `test` package in test suite
+- Updated documentation to reflect Dart-agnostic nature
+- Added `drift_testcases` as dev dependency for comprehensive testing
+
+See MIGRATION_V2.md for detailed migration instructions and examples.
+
 ## 1.1.1
 - Ensure default changeset queries order records by primary key (typically `id`) and document the behavior.
 

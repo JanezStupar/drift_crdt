@@ -2,8 +2,7 @@ import 'dart:convert';
 
 import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
+import 'package:test/test.dart';
 
 import 'utils/seed_data.dart' as seeds;
 import 'utils/serializable.dart' as s;
@@ -244,7 +243,6 @@ class CrdtExecutor extends TestExecutor {
 
 Future<void> main() async {
   await backend.configureBackendForPlatform();
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   final executor = CrdtExecutor();
   final connection = executor.createConnection();

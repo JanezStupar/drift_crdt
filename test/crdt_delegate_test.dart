@@ -3,7 +3,7 @@ import 'package:drift_testcases/suite/custom_objects.dart';
 import 'package:drift_testcases/suite/migrations.dart';
 import 'package:drift_testcases/suite/transactions.dart';
 import 'package:drift_testcases/tests.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 import 'utils/test_backend.dart' as backend;
 

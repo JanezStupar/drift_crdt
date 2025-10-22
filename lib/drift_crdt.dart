@@ -1,7 +1,7 @@
-/// Flutter implementation for the drift database packages.
+/// Dart implementation for the drift database packages.
 ///
 /// The [CrdtQueryExecutor] class can be used as a drift database
-/// implementation based on the `sqflite` package.
+/// implementation based on the `sqflite_common` package.
 library drift_crdt;
 
 import 'dart:async';
@@ -13,7 +13,7 @@ import 'package:drift_crdt/utils.dart';
 import 'package:path/path.dart';
 import 'package:postgres/postgres.dart' show Endpoint, ConnectionSettings;
 import 'package:postgres_crdt/postgres_crdt.dart' as postgres_crdt;
-import 'package:sqflite/sqflite.dart' as sqflite;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sql_crdt/sql_crdt.dart' as sql_crdt;
 import 'package:sqlite_crdt/sqlite_crdt.dart' as sqlite_crdt;
 import 'package:sqlparser/sqlparser.dart' as sqlparser;
@@ -362,7 +362,7 @@ class _CrdtDelegate extends DatabaseDelegate {
   Future<void> open(QueryExecutorUser user) async {
     String resolvedPath;
     if (inDbFolder) {
-      resolvedPath = join(await sqflite.getDatabasesPath(), path);
+      resolvedPath = join(await getDatabasesPath(), path);
     } else {
       resolvedPath = path;
     }
@@ -727,10 +727,10 @@ class CrdtQueryExecutor extends DelegatedDatabase {
             isSequential: true);
 
   /// A query executor that will store the database in the file declared by
-  /// [path], which will be resolved relative to [s.getDatabasesPath()].
+  /// [path], which will be resolved relative to [getDatabasesPath()].
   /// If [logStatements] is true, statements sent to the database will
   /// be [print]ed, which can be handy for debugging. The [singleInstance]
-  /// parameter sets the corresponding parameter on [s.openDatabase].
+  /// parameter sets the corresponding parameter on database opening.
   /// The [creator] will be called when the database file doesn't exist. It can
   /// be used to, for instance, populate default data from an asset. Note that
   /// migrations might behave differently when populating the database this way.
