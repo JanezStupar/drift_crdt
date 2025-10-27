@@ -1,0 +1,28 @@
+name: drift_crdt_testing
+description: Testing utilities for drift_crdt, including multi-backend support for SQLite and PostgreSQL.
+version: 1.0.0
+repository: https://github.com/JanezStupar/drift_crdt.git
+homepage: https://janezstupar.com
+issue_tracker: https://github.com/JanezStupar/drift_crdt/issues
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+publish_to: none
+
+dependencies:
+  drift_crdt:
+    path: ../
+  sqflite_common_ffi: ^2.2.5
+  path: ^1.8.0
+  postgres: ^3.5.7
+  json_annotation: ^4.9.0
+  drift_testcases:
+    git:
+      url: https://github.com/simolus3/drift.git
+      path: extras/integration_tests/drift_testcases
+
+dev_dependencies:
+  lints: ^5.0.0
+  build_runner: ^2.4.5
+  json_serializable: ^6.2.0

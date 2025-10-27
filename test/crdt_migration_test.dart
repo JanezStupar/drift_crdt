@@ -1,6 +1,5 @@
+import 'package:drift_crdt_testing/drift_crdt_testing.dart' as testing;
 import 'package:test/test.dart';
-
-import 'utils/test_backend.dart' as backend;
 
 void crdtMigrationTests() {
   // Note: These tests are skipped in Flutter-agnostic mode because they require
@@ -19,9 +18,9 @@ void crdtMigrationTests() {
 }
 
 Future<void> main() async {
-  await backend.configureBackendForPlatform();
+  await testing.configureBackendForPlatform();
 
-  if (backend.backendConfig.isPostgres) {
+  if (testing.backendConfig.isPostgres) {
     test(
       'migration tests are sqlite-specific',
       () {},

@@ -1,8 +1,6 @@
+import 'package:drift_crdt_testing/drift_crdt_testing.dart' as testing;
 import 'package:drift_testcases/tests.dart';
 import 'package:test/test.dart';
-
-import 'utils/seed_data.dart' as seeds;
-import 'utils/test_backend.dart' as backend;
 
 class _CrdtExecutor extends TestExecutor {
   @override
@@ -12,7 +10,7 @@ class _CrdtExecutor extends TestExecutor {
 
   @override
   DatabaseConnection createConnection() {
-    final executor = backend.createExecutor(
+    final executor = testing.createExecutor(
       sqliteDbName: _sqliteDbName,
       singleInstance: true,
     );
@@ -21,12 +19,12 @@ class _CrdtExecutor extends TestExecutor {
 
   @override
   Future deleteData() async {
-    await backend.clearBackend(sqliteDbName: _sqliteDbName);
+    await testing.clearBackend(sqliteDbName: _sqliteDbName);
   }
 }
 
 Future<void> main() async {
-  await backend.configureBackendForPlatform();
+  await testing.configureBackendForPlatform();
 
   group('watch() on deleted rows', () {
     late _CrdtExecutor executor;
@@ -38,7 +36,7 @@ Future<void> main() async {
       db = Database(connection);
       await executor.deleteData();
       await connection.ensureOpen(db);
-      await seeds.resetAndSeedBaselineData(db);
+      await testing.resetAndSeedBaselineData(db);
     });
 
     tearDownAll(() async {

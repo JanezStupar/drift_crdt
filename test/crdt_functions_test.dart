@@ -1,12 +1,9 @@
 import 'dart:convert';
 
 import 'package:drift_crdt/drift_crdt.dart';
+import 'package:drift_crdt_testing/drift_crdt_testing.dart' as testing;
 import 'package:drift_testcases/tests.dart';
 import 'package:test/test.dart';
-
-import 'utils/seed_data.dart' as seeds;
-import 'utils/serializable.dart' as s;
-import 'utils/test_backend.dart' as backend;
 
 void crdtTests(Database db, CrdtExecutor executor) {
   const baselineUserNames = {'Dash', 'Duke', 'Go Gopher'};
@@ -17,7 +14,7 @@ void crdtTests(Database db, CrdtExecutor executor) {
   }
 
   setUp(() async {
-    await seeds.resetAndSeedBaselineData(db);
+    await testing.resetAndSeedBaselineData(db);
   });
 
   test('get last modified', () async {
@@ -84,7 +81,7 @@ void crdtTests(Database db, CrdtExecutor executor) {
     final decoded = json.decode(raw) as Map<String, dynamic>;
 
     final users = (decoded['users'] as List<dynamic>)
-        .map((entry) => s.User.fromJson(
+        .map((entry) => testing.User.fromJson(
             Map<String, Object?>.from(entry as Map<String, Object?>)))
         .toList();
 
@@ -228,7 +225,7 @@ class CrdtExecutor extends TestExecutor {
 
   @override
   DatabaseConnection createConnection() {
-    final executor = backend.createExecutor(
+    final executor = testing.createExecutor(
       sqliteDbName: _sqliteDbName,
       singleInstance: true,
     );
@@ -237,19 +234,19 @@ class CrdtExecutor extends TestExecutor {
 
   @override
   Future deleteData() async {
-    await backend.clearBackend(sqliteDbName: _sqliteDbName);
+    await testing.clearBackend(sqliteDbName: _sqliteDbName);
   }
 }
 
 Future<void> main() async {
-  await backend.configureBackendForPlatform();
+  await testing.configureBackendForPlatform();
 
   final executor = CrdtExecutor();
   final connection = executor.createConnection();
   final db = Database(connection);
   await executor.deleteData();
   await connection.ensureOpen(db);
-  await seeds.resetAndSeedBaselineData(db);
+  await testing.resetAndSeedBaselineData(db);
 
   crdtTests(db, executor);
 }

@@ -1,11 +1,10 @@
+import 'package:drift_crdt_testing/drift_crdt_testing.dart' as testing;
 import 'package:drift_testcases/suite/crud_tests.dart';
 import 'package:drift_testcases/suite/custom_objects.dart';
 import 'package:drift_testcases/suite/migrations.dart';
 import 'package:drift_testcases/suite/transactions.dart';
 import 'package:drift_testcases/tests.dart';
 import 'package:test/test.dart';
-
-import 'utils/test_backend.dart' as backend;
 
 class CrdtExecutor extends TestExecutor {
   // Nested transactions are not supported because the Sqflite backend doesn't
@@ -17,7 +16,7 @@ class CrdtExecutor extends TestExecutor {
 
   @override
   DatabaseConnection createConnection() {
-    final executor = backend.createExecutor(
+    final executor = testing.createExecutor(
       sqliteDbName: _sqliteDbName,
       singleInstance: false,
     );
@@ -26,7 +25,7 @@ class CrdtExecutor extends TestExecutor {
 
   @override
   Future deleteData() async {
-    await backend.clearBackend(sqliteDbName: _sqliteDbName);
+    await testing.clearBackend(sqliteDbName: _sqliteDbName);
   }
 }
 
@@ -40,7 +39,7 @@ void runSupportedTests(TestExecutor executor) {
 
   crudTests(executor);
 
-  if (!backend.backendConfig.isPostgres) {
+  if (!testing.backendConfig.isPostgres) {
     migrationTests(executor);
   }
 
@@ -55,7 +54,7 @@ void runSupportedTests(TestExecutor executor) {
 }
 
 Future<void> main() async {
-  await backend.configureBackendForPlatform();
+  await testing.configureBackendForPlatform();
 
   final executor = CrdtExecutor();
   await executor.deleteData();

@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:drift_crdt/drift_crdt.dart';
+import 'package:drift_crdt_testing/drift_crdt_testing.dart' as backend;
 import 'package:test/test.dart';
-
-import 'utils/test_backend.dart' as backend;
 
 void main() async {
   await backend.configureBackendForPlatform();

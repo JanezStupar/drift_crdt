@@ -209,6 +209,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.29.0"
+  drift_crdt_testing:
+    dependency: "direct dev"
+    description:
+      path: drift_crdt_testing
+      relative: true
+    source: path
+    version: "1.0.0"
   drift_postgres:
     dependency: "direct main"
     description:

@@ -1,10 +1,9 @@
+import 'package:drift_crdt_testing/drift_crdt_testing.dart' as testing;
 import 'package:drift_testcases/suite/crud_tests.dart';
 import 'package:drift_testcases/suite/custom_objects.dart';
 import 'package:drift_testcases/suite/transactions.dart';
 import 'package:drift_testcases/tests.dart';
 import 'package:test/test.dart';
-
-import 'utils/test_backend.dart' as backend;
 
 class CrdtExecutor extends TestExecutor {
   // Nested transactions are not supported because the Sqflite backend doesn't
@@ -16,8 +15,8 @@ class CrdtExecutor extends TestExecutor {
 
   @override
   DatabaseConnection createConnection() {
-    final executor = backend.createExecutor(
-      inMemory: backend.backendConfig.isSqlite,
+    final executor = testing.createExecutor(
+      inMemory: testing.backendConfig.isSqlite,
       sqliteDbName: _sqliteDbName,
     );
     return DatabaseConnection(executor);
@@ -25,7 +24,7 @@ class CrdtExecutor extends TestExecutor {
 
   @override
   Future deleteData() async {
-    await backend.clearBackend(sqliteDbName: _sqliteDbName);
+    await testing.clearBackend(sqliteDbName: _sqliteDbName);
   }
 }
 
@@ -50,7 +49,7 @@ void runSomeTests(TestExecutor executor) {
 }
 
 Future<void> main() async {
-  await backend.configureBackendForPlatform();
+  await testing.configureBackendForPlatform();
 
   final executor = CrdtExecutor();
   runSomeTests(executor);
