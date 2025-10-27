@@ -478,6 +478,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
 
   final Endpoint endpoint;
   final ConnectionSettings? settings;
+  final String? schema;
   final bool enableMigrations;
 
   late _PostgresCrdtTransactionDelegate? _transactionDelegate;
@@ -485,6 +486,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
   _PostgresCrdtDelegate({
     required this.endpoint,
     this.settings,
+    this.schema,
     this.enableMigrations = true,
   });
 
@@ -513,6 +515,15 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
       password: endpoint.password,
       sslMode: settings?.sslMode,
     );
+
+    // If a schema is specified, create it and set it as the search_path
+    if (schema != null && schema!.isNotEmpty) {
+      final escapedSchema = schema!.replaceAll('"', '""');
+      await postgresCrdt.execute(
+          'CREATE SCHEMA IF NOT EXISTS "$escapedSchema"', null);
+      await postgresCrdt.execute('SET search_path TO "$escapedSchema"', null);
+    }
+
     _transactionDelegate = _PostgresCrdtTransactionDelegate(this);
     _isOpen = true;
   }
@@ -758,6 +769,11 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// [endpoint]. The [settings] parameter can be used to configure SSL and
   /// other connection options.
   ///
+  /// The optional [schema] parameter allows you to specify a PostgreSQL schema
+  /// name. When provided, the executor will create the schema if it doesn't exist
+  /// and set it as the search_path for all queries. This is useful for test
+  /// isolation where each database instance can use a separate schema.
+  ///
   /// Set [enableMigrations] to false if you're managing schema migrations
   /// externally. When true (default), drift will manage migrations through
   /// the __schema table.
@@ -767,6 +783,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   CrdtQueryExecutor.postgres({
     required Endpoint endpoint,
     ConnectionSettings? settings,
+    String? schema,
     bool enableMigrations = true,
     bool? logStatements,
   })  : _dialect = SqlDialect.postgres,
@@ -774,6 +791,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
           _PostgresCrdtDelegate(
             endpoint: endpoint,
             settings: settings,
+            schema: schema,
             enableMigrations: enableMigrations,
           ),
           logStatements: logStatements,

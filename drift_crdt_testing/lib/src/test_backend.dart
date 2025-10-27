@@ -105,6 +105,7 @@ CrdtQueryExecutor createExecutor({
   String sqliteDbName = 'app.db',
   bool singleInstance = true,
   DatabaseCreator? sqliteCreator,
+  String? postgresSchema,
 }) {
   final config = backendConfig;
   if (config.isSqlite) {
@@ -124,13 +125,19 @@ CrdtQueryExecutor createExecutor({
   final endpoint = config.endpoint!;
   return CrdtQueryExecutor.postgres(
     endpoint: endpoint,
-    settings: ConnectionSettings(sslMode: config.sslMode),
+    settings: ConnectionSettings(
+      sslMode: config.sslMode,
+    ),
+    schema: postgresSchema,
     enableMigrations: config.enableMigrations,
     logStatements: false,
   );
 }
 
-Future<void> clearBackend({required String sqliteDbName}) async {
+Future<void> clearBackend({
+  required String sqliteDbName,
+  String? postgresSchema,
+}) async {
   final config = backendConfig;
   if (config.isSqlite) {
     final folder = await getDatabasesPath();
@@ -151,10 +158,14 @@ Future<void> clearBackend({required String sqliteDbName}) async {
     settings: ConnectionSettings(sslMode: config.sslMode),
   );
   try {
-    await connection.execute(Sql('DROP SCHEMA IF EXISTS public CASCADE'));
-    await connection.execute(Sql('CREATE SCHEMA public'));
+    final schemaName = postgresSchema ?? 'public';
+    await connection
+        .execute(Sql('DROP SCHEMA IF EXISTS ${_escapeIdentifier(schemaName)} CASCADE'));
+    await connection
+        .execute(Sql('CREATE SCHEMA ${_escapeIdentifier(schemaName)}'));
     // Ensure the search_path still points to the recreated schema.
-    await connection.execute(Sql('SET search_path TO public'));
+    await connection
+        .execute(Sql('SET search_path TO ${_escapeIdentifier(schemaName)}'));
   } finally {
     await connection.close();
   }
