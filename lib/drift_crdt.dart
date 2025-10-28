@@ -11,7 +11,7 @@ import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_crdt/utils.dart';
 import 'package:path/path.dart';
-import 'package:postgres/postgres.dart' show Endpoint, ConnectionSettings;
+import 'package:postgres/postgres.dart' show Endpoint, ConnectionSettings, PoolSettings;
 import 'package:postgres_crdt/postgres_crdt.dart' as postgres_crdt;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sql_crdt/sql_crdt.dart' as sql_crdt;
@@ -20,7 +20,7 @@ import 'package:sqlparser/sqlparser.dart' as sqlparser;
 import 'package:sqlparser/utils/node_to_text.dart';
 
 export 'package:postgres/postgres.dart'
-    show Endpoint, ConnectionSettings, SslMode;
+    show Endpoint, ConnectionSettings, SslMode, PoolSettings;
 export 'package:sqlite_crdt/sqlite_crdt.dart'
     show Hlc, CrdtChangeset, parseCrdtChangeset, CrdtTableChangeset;
 
@@ -507,21 +507,51 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
 
   @override
   Future<void> open(QueryExecutorUser user) async {
-    postgresCrdt = await PostgresCrdt.open(
-      endpoint.database,
-      host: endpoint.host,
-      port: endpoint.port,
-      username: endpoint.username,
-      password: endpoint.password,
-      sslMode: settings?.sslMode,
-    );
-
-    // If a schema is specified, create it and set it as the search_path
+    // Create schema if specified
     if (schema != null && schema!.isNotEmpty) {
       final escapedSchema = schema!.replaceAll('"', '""');
-      await postgresCrdt.execute(
-          'CREATE SCHEMA IF NOT EXISTS "$escapedSchema"', null);
-      await postgresCrdt.execute('SET search_path TO "$escapedSchema"', null);
+
+      // Temporarily open connection to create schema
+      final tempCrdt = await PostgresCrdt.open(
+        endpoint.database,
+        host: endpoint.host,
+        port: endpoint.port,
+        username: endpoint.username,
+        password: endpoint.password,
+        poolSettings: PoolSettings(
+          sslMode: settings?.sslMode,
+        ),
+      );
+      await tempCrdt.execute('CREATE SCHEMA IF NOT EXISTS "$escapedSchema"', null);
+      await tempCrdt.close();
+
+      // Now create the actual pool with onOpen callback
+      postgresCrdt = await PostgresCrdt.open(
+        endpoint.database,
+        host: endpoint.host,
+        port: endpoint.port,
+        username: endpoint.username,
+        password: endpoint.password,
+        poolSettings: PoolSettings(
+          sslMode: settings?.sslMode,
+          // This callback runs for EVERY connection in the pool
+          onOpen: (connection) async {
+            await connection.execute('SET search_path TO "$escapedSchema"');
+          },
+        ),
+      );
+    } else {
+      // No schema - use default
+      postgresCrdt = await PostgresCrdt.open(
+        endpoint.database,
+        host: endpoint.host,
+        port: endpoint.port,
+        username: endpoint.username,
+        password: endpoint.password,
+        poolSettings: settings != null ? PoolSettings(
+          sslMode: settings?.sslMode,
+        ) : null,
+      );
     }
 
     _transactionDelegate = _PostgresCrdtTransactionDelegate(this);

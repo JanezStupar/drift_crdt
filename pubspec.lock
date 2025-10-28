@@ -245,7 +245,7 @@ packages:
     description:
       path: "extras/integration_tests/drift_testcases"
       ref: HEAD
-      resolved-ref: "05e68ddafe1256aa70d87e5d2b8a751d1792d9ee"
+      resolved-ref: a3d8555f171fc87445d49b1137b8fc1520efb294
       url: "https://github.com/simolus3/drift.git"
     source: git
     version: "1.0.0"
@@ -438,7 +438,7 @@ packages:
     description:
       path: "."
       ref: "feature/ver4"
-      resolved-ref: "7d720a6a155212778693a2cb8b33bd25e9ced4bf"
+      resolved-ref: "3585aed36e1f5416099be3f307b2df75f4e8d42e"
       url: "https://github.com/JanezStupar/postgres_crdt.git"
     source: git
     version: "4.0.0"
@@ -599,7 +599,7 @@ packages:
     description:
       path: "."
       ref: "feature/postgres_related"
-      resolved-ref: "5323e0933b97458ca9a0b2feba692f3a1178a3fd"
+      resolved-ref: "146b849fed426e80d24d4eaafb5ff6c6595b0402"
       url: "https://github.com/JanezStupar/sql_crdt.git"
     source: git
     version: "4.0.0"
