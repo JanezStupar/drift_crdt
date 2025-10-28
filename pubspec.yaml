@@ -28,6 +28,7 @@ dev_dependencies:
   test: ^1.22.0
   build_runner: ^2.4.5
   json_serializable: ^6.2.0
+  drift_dev: ^2.26.0
   drift_crdt_testing:
     path: ./drift_crdt_testing
   drift_testcases:
