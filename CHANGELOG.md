@@ -1,3 +1,9 @@
+## 2.1.0
+- Added optional PostgreSQL `schema` configuration that auto-creates the schema and scopes every connection's `search_path`.
+- Ensured PostgreSQL delegates integrate cleanly with pooled connections by running per-connection `onOpen` hooks.
+- Published the `drift_crdt_testing` package so downstream projects can reuse the multi-backend test harness.
+- Added regression coverage for identifiers that collide with reserved keywords on both SQLite and PostgreSQL backends.
+
 ## 2.0.0
 
 **BREAKING CHANGE: Package is now Flutter-agnostic**

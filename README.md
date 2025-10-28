@@ -7,12 +7,11 @@ Simon Binder's `drift_sqflite` package.
 
 For more information on `drift`, see its [documentation](https://drift.simonbinder.eu/docs/).
 
-### What's new in 1.1.0
+### What's new in 2.1.0
 
-- Added support for Postgres.
-- Unified CRDT executor so both SQLite and Postgres share the same high-level API.
-- Added automatic placeholder normalization (`?` ↔ `$n`) and `RETURNING` propagation for queries.
-- Hardened CRDT transaction delegation, including binary parameter handling and consistent deleted-row filtering.
+- Added optional PostgreSQL `schema` support that auto-creates the schema and scopes every connection's `search_path`.
+- Improved PostgreSQL delegate initialization to work seamlessly with pooled connections and per-connection setup callbacks.
+- Published reusable multi-backend helpers as the `drift_crdt_testing` package for easier CRDT testing in downstream apps.
 
 ### Usage
 
@@ -54,12 +53,14 @@ QueryExecutor _openPostgresConnection() {
       username: 'postgres',
       password: 'postgres',
     ),
+    schema: 'app',
   );
 }
 ```
 
 If you are managing connections yourself (for instance through a `Pool`), use
 `CrdtQueryExecutor.postgresOpened(session)` instead of the factory shown above.
+Omit the `schema` parameter if you want to stay on the default `public` schema.
 
 ### Running tests
 
@@ -83,6 +84,8 @@ dart test
 
 Each suite truncates the configured database, so use a dedicated Postgres
 instance when running tests.
+
+The repository also ships the `drift_crdt_testing` helper package containing the same backend harness we use internally. Add a dependency on it if you want to stand up identical multi-backend fixtures in your own test suites.
 
 ### Drift migrations
 
