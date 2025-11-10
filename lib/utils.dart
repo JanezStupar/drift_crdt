@@ -64,12 +64,20 @@ class DriftCrdtUtils {
     return statement.toSql();
   }
 
-  /// Prepare the Select [statement] to be in line with the CRDT requirements
-  /// if [queryDeleted] is set to `false` then we query only regular records
-  /// if it is set to `true` we query all the records in database.
-  /// This is useful in migrations, or auditing
+  /// Prepare the Select [statement] to be in line with the CRDT requirements.
+  ///
+  /// - When [queryDeleted] is false, query only non-deleted records.
+  /// - When [queryDeleted] is true, include deleted and non-deleted records.
+  ///
+  /// Optionally, restrict CRDT filters to a subset of tables via
+  /// [onlyTables] or exclude specific tables via [excludeTables]. If both are
+  /// provided, [onlyTables] takes precedence.
   static void prepareSelectStatement(
-      SelectStatement statement, bool queryDeleted) {
+    SelectStatement statement,
+    bool queryDeleted, {
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
+  }) {
     var fakeSpan = SourceFile.fromString('fakeSpan').span(0);
     var andToken = Token(TokenType.and, fakeSpan);
     var orToken = Token(TokenType.or, fakeSpan);
@@ -103,6 +111,29 @@ class DriftCrdtUtils {
     for (final table in rootTables) {
       final entityName = table.as ?? table.tableName;
       final schemaName = table.as == null ? table.schemaName : null;
+
+      // Determine if this table should have CRDT filters applied
+      final unqualifiedName = table.tableName;
+      final qualifiedName = schemaName != null
+          ? '${schemaName}.${unqualifiedName}'
+          : unqualifiedName;
+
+      bool applyFilter = true;
+      if (onlyTables != null && onlyTables.isNotEmpty) {
+        // If onlyTables specified, apply only when a match is found
+        applyFilter = onlyTables.contains(unqualifiedName) ||
+            onlyTables.contains(qualifiedName);
+      } else if (excludeTables != null && excludeTables.isNotEmpty) {
+        // Otherwise, exclude when a match is found
+        if (excludeTables.contains(unqualifiedName) ||
+            excludeTables.contains(qualifiedName)) {
+          applyFilter = false;
+        }
+      }
+
+      if (!applyFilter) {
+        continue;
+      }
       final reference = Reference(
         columnName: 'is_deleted',
         entityName: entityName,

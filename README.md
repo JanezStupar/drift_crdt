@@ -54,6 +54,9 @@ QueryExecutor _openPostgresConnection() {
       password: 'postgres',
     ),
     schema: 'app',
+    // Optional: limit CRDT to specific tables, or exclude some
+    // onlyCrdtTables: {'users', 'epochs', 'categories'},
+    // excludeCrdtTables: {'handshake_nodes', 'request_log'},
   );
 }
 ```
