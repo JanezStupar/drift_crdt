@@ -189,10 +189,10 @@ packages:
     dependency: transitive
     description:
       name: crypto
-      sha256: "1e445881f28f22d6140f181e07737b22f1e099a5e1ff94b0af2f9e4a463f4855"
+      sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.6"
+    version: "3.0.7"
   dart_style:
     dependency: transitive
     description:
@@ -245,7 +245,7 @@ packages:
     description:
       path: "extras/integration_tests/drift_testcases"
       ref: HEAD
-      resolved-ref: a3d8555f171fc87445d49b1137b8fc1520efb294
+      resolved-ref: "5e4dfc88865c8c668e1fb796ccd732d00a551ec0"
       url: "https://github.com/simolus3/drift.git"
     source: git
     version: "1.0.0"
@@ -438,7 +438,7 @@ packages:
     description:
       path: "."
       ref: "feature/ver4"
-      resolved-ref: "3585aed36e1f5416099be3f307b2df75f4e8d42e"
+      resolved-ref: "8f2c2c15abc206e9683b895666fe8acc0f093a02"
       url: "https://github.com/JanezStupar/postgres_crdt.git"
     source: git
     version: "4.0.0"
@@ -562,14 +562,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
-  sprintf:
-    dependency: transitive
-    description:
-      name: sprintf
-      sha256: "1fc9ffe69d4df602376b52949af107d8f5703b77cda567c4d7d86a0693120f23"
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.0.0"
   sqflite_common:
     dependency: "direct main"
     description:
@@ -599,7 +591,7 @@ packages:
     description:
       path: "."
       ref: "feature/postgres_related"
-      resolved-ref: "146b849fed426e80d24d4eaafb5ff6c6595b0402"
+      resolved-ref: "7d006faed89e13ae9377d3b2c05e78662964b9bb"
       url: "https://github.com/JanezStupar/sql_crdt.git"
     source: git
     version: "4.0.0"
@@ -607,16 +599,16 @@ packages:
     dependency: transitive
     description:
       name: sqlite3
-      sha256: f18fd9a72d7a1ad2920db61368f2a69368f1cc9b56b8233e9d83b47b0a8435aa
+      sha256: "3145bd74dcdb4fd6f5c6dda4d4e4490a8087d7f286a14dee5d37087290f0f8a2"
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.3"
+    version: "2.9.4"
   sqlite_crdt:
     dependency: "direct main"
     description:
       path: "."
       ref: "feature/ver4"
-      resolved-ref: "452b6242a970634eeebbeb058457441878ad004d"
+      resolved-ref: d488004439bf86913ba023ce6d4268337dc1ccd1
       url: "https://github.com/JanezStupar/sqlite_crdt.git"
     source: git
     version: "4.0.0"
@@ -728,10 +720,10 @@ packages:
     dependency: transitive
     description:
       name: uuid
-      sha256: a5be9ef6618a7ac1e964353ef476418026db906c4facdedaa299b7a2e71690ff
+      sha256: a11b666489b1954e01d992f3d601b1804a33937b5a8fe677bd26b8a9f96f96e8
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.1"
+    version: "4.5.2"
   vm_service:
     dependency: transitive
     description:

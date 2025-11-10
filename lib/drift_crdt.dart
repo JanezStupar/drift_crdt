@@ -1002,7 +1002,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     if (effectiveQueries == null) {
       var tables = onlyTables != null
           ? onlyTables.toList()
-          : (await crdt.getTables()).toList();
+          : (await crdt.getTables(schema: _getSchema())).toList();
 
       // Apply per-executor filters when caller didn't specify onlyTables
       if (onlyTables == null) {
@@ -1047,12 +1047,22 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// Builds an ORDER BY clause for the table's primary key columns.
   /// Returns an empty string when the table exposes no primary key metadata.
   Future<String> _orderByPrimaryKeys(SqlCrdt crdt, String table) async {
-    final keys = (await crdt.getTableKeys(table)).toList();
+    final keys = (await crdt.getTableKeys(table, schema: _getSchema())).toList();
     if (keys.isEmpty) {
       return '';
     }
     final orderColumns = keys.join(', ');
     return ' ORDER BY $orderColumns';
+  }
+
+  /// Returns the schema name if using PostgreSQL, null otherwise.
+  /// This is used to pass the schema parameter to postgres_crdt methods.
+  String? _getSchema() {
+    final currentDelegate = delegate;
+    if (currentDelegate is _PostgresCrdtDelegate) {
+      return currentDelegate.schema;
+    }
+    return null;
   }
 }
 
