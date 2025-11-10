@@ -7,11 +7,13 @@ Simon Binder's `drift_sqflite` package.
 
 For more information on `drift`, see its [documentation](https://drift.simonbinder.eu/docs/).
 
-### What's new in 2.1.0
+### What's new in 2.2.0
 
-- Added optional PostgreSQL `schema` support that auto-creates the schema and scopes every connection's `search_path`.
-- Improved PostgreSQL delegate initialization to work seamlessly with pooled connections and per-connection setup callbacks.
-- Published reusable multi-backend helpers as the `drift_crdt_testing` package for easier CRDT testing in downstream apps.
+- Added per-table CRDT configuration via `onlyCrdtTables` / `excludeCrdtTables` on every `CrdtQueryExecutor` constructor so canonical tables can opt-in while sync metadata stays untouched.
+- Default SELECT rewriting and `getChangeset()` builders now honor the include/exclude lists, preventing errors when non-CRDT tables exist in the same schema.
+- Included new regression tests (`per_table_configuration_test.dart`) in `drift_crdt_testing` to cover the configuration on both SQLite and PostgreSQL.
+
+See `CHANGELOG.md` for older releases.
 
 ### Usage
 
@@ -64,6 +66,30 @@ QueryExecutor _openPostgresConnection() {
 If you are managing connections yourself (for instance through a `Pool`), use
 `CrdtQueryExecutor.postgresOpened(session)` instead of the factory shown above.
 Omit the `schema` parameter if you want to stay on the default `public` schema.
+
+### Per-table CRDT configuration
+
+Some applications share a database between CRDT-aware tables (for example
+`users`, `epochs`, `categories`) and auxiliary metadata tables that should stay
+regular SQL tables (for example `handshake_nodes`, `request_log`). Use the new
+`onlyCrdtTables` or `excludeCrdtTables` parameters on any
+`CrdtQueryExecutor` constructor to control where CRDT filters and metadata
+tracking run:
+
+```dart
+return CrdtQueryExecutor.postgres(
+  endpoint: endpoint,
+  schema: 'trackself',
+  onlyCrdtTables: {'users', 'epochs', 'categories'},
+  // or alternatively, exclude known sync metadata tables:
+  // excludeCrdtTables: {'handshake_nodes', 'request_log'},
+);
+```
+
+`onlyCrdtTables` takes priority when both parameters are supplied. The include /
+exclude filters are honored by `SELECT` rewriting (no stray `is_deleted`
+clauses), CRDT transactions, and the default queries built by
+`getChangeset()`.
 
 ### Running tests
 

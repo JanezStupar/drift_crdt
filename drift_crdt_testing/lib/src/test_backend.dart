@@ -106,6 +106,8 @@ CrdtQueryExecutor createExecutor({
   bool singleInstance = true,
   DatabaseCreator? sqliteCreator,
   String? postgresSchema,
+  Set<String>? onlyCrdtTables,
+  Set<String>? excludeCrdtTables,
 }) {
   final config = backendConfig;
   if (config.isSqlite) {
@@ -113,12 +115,16 @@ CrdtQueryExecutor createExecutor({
       return CrdtQueryExecutor.inMemory(
         singleInstance: singleInstance,
         creator: sqliteCreator,
+        onlyCrdtTables: onlyCrdtTables,
+        excludeCrdtTables: excludeCrdtTables,
       );
     }
     return CrdtQueryExecutor.inDatabaseFolder(
       path: sqliteDbName,
       singleInstance: singleInstance,
       creator: sqliteCreator,
+      onlyCrdtTables: onlyCrdtTables,
+      excludeCrdtTables: excludeCrdtTables,
     );
   }
 
@@ -130,6 +136,8 @@ CrdtQueryExecutor createExecutor({
     ),
     schema: postgresSchema,
     enableMigrations: config.enableMigrations,
+    onlyCrdtTables: onlyCrdtTables,
+    excludeCrdtTables: excludeCrdtTables,
     logStatements: false,
   );
 }
@@ -159,8 +167,8 @@ Future<void> clearBackend({
   );
   try {
     final schemaName = postgresSchema ?? 'public';
-    await connection
-        .execute(Sql('DROP SCHEMA IF EXISTS ${_escapeIdentifier(schemaName)} CASCADE'));
+    await connection.execute(
+        Sql('DROP SCHEMA IF EXISTS ${_escapeIdentifier(schemaName)} CASCADE'));
     await connection
         .execute(Sql('CREATE SCHEMA ${_escapeIdentifier(schemaName)}'));
     // Ensure the search_path still points to the recreated schema.
