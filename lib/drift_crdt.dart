@@ -809,6 +809,19 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// For instance, a database created by an [creator] will not receive the
   /// [MigrationStrategy.onCreate] callback because it hasn't been created by
   /// drift.
+  ///
+  /// The [migrate] parameter controls whether Drift should manage schema migrations
+  /// (currently not fully supported in drift_crdt, defaults to false).
+  ///
+  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// specific tables. When set, only tables in this set will have CRDT metadata
+  /// columns added and be included in changesets. Cannot be used together with
+  /// [excludeCrdtTables].
+  ///
+  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// specific tables. When set, tables in this set will not have CRDT metadata
+  /// columns added and will not be included in changesets. Cannot be used together
+  /// with [onlyCrdtTables].
   CrdtQueryExecutor({
     required String path,
     bool? logStatements,
@@ -834,6 +847,21 @@ class CrdtQueryExecutor extends DelegatedDatabase {
             logStatements: logStatements,
             isSequential: true);
 
+  /// A query executor that uses an in-memory SQLite database for testing or
+  /// temporary storage.
+  ///
+  /// The [migrate] parameter controls whether Drift should manage schema migrations
+  /// (currently not fully supported in drift_crdt, defaults to false).
+  ///
+  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// specific tables. When set, only tables in this set will have CRDT metadata
+  /// columns added and be included in changesets. Cannot be used together with
+  /// [excludeCrdtTables].
+  ///
+  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// specific tables. When set, tables in this set will not have CRDT metadata
+  /// columns added and will not be included in changesets. Cannot be used together
+  /// with [onlyCrdtTables].
   CrdtQueryExecutor.inMemory({
     bool? logStatements,
     bool singleInstance = true,
@@ -867,6 +895,19 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// For instance, a database created by an [creator] will not receive the
   /// [MigrationStrategy.onCreate] callback because it hasn't been created by
   /// drift.
+  ///
+  /// The [migrate] parameter controls whether Drift should manage schema migrations
+  /// (currently not fully supported in drift_crdt, defaults to false).
+  ///
+  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// specific tables. When set, only tables in this set will have CRDT metadata
+  /// columns added and be included in changesets. Cannot be used together with
+  /// [excludeCrdtTables].
+  ///
+  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// specific tables. When set, tables in this set will not have CRDT metadata
+  /// columns added and will not be included in changesets. Cannot be used together
+  /// with [onlyCrdtTables].
   CrdtQueryExecutor.inDatabaseFolder({
     required String path,
     bool? logStatements,
@@ -906,6 +947,16 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// Set [enableMigrations] to false if you're managing schema migrations
   /// externally. When true (default), drift will manage migrations through
   /// the __schema table.
+  ///
+  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// specific tables. When set, only tables in this set will have CRDT metadata
+  /// columns added and be included in changesets. Cannot be used together with
+  /// [excludeCrdtTables].
+  ///
+  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// specific tables. When set, tables in this set will not have CRDT metadata
+  /// columns added and will not be included in changesets. Cannot be used together
+  /// with [onlyCrdtTables].
   ///
   /// If [logStatements] is true, statements sent to the database will
   /// be printed, which can be handy for debugging.
