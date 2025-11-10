@@ -1,6 +1,6 @@
 name: drift_crdt
 description: A Dart implementation of a drift CRDT database, based on the `sqlite_crdt` package and `sqflite_common`.
-version: 2.2.0
+version: 2.2.1
 repository: https://github.com/JanezStupar/drift_crdt.git
 homepage: https://janezstupar.com
 issue_tracker: https://github.com/JanezStupar/drift_crdt/issues

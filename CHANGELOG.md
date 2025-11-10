@@ -1,3 +1,6 @@
+## Unreleased
+- Updated `getTables()` and `getTableKeys()` calls to pass the `schema` parameter to postgres_crdt, enabling proper schema-specific queries when using PostgreSQL with schema isolation.
+
 ## 2.2.0
 - Added per-table CRDT configuration via the new `onlyCrdtTables` and
   `excludeCrdtTables` options on every `CrdtQueryExecutor` constructor.

@@ -1047,11 +1047,19 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// Builds an ORDER BY clause for the table's primary key columns.
   /// Returns an empty string when the table exposes no primary key metadata.
   Future<String> _orderByPrimaryKeys(SqlCrdt crdt, String table) async {
-    final keys = (await crdt.getTableKeys(table, schema: _getSchema())).toList();
-    if (keys.isEmpty) {
+    // PostgresCrdt supports the schema parameter, but SqliteCrdt doesn't
+    final Iterable<String> keys;
+    if (crdt is PostgresCrdt) {
+      keys = await crdt.getTableKeys(table, schema: _getSchema());
+    } else {
+      keys = await crdt.getTableKeys(table);
+    }
+
+    final keyList = keys.toList();
+    if (keyList.isEmpty) {
       return '';
     }
-    final orderColumns = keys.join(', ');
+    final orderColumns = keyList.join(', ');
     return ' ORDER BY $orderColumns';
   }
 
