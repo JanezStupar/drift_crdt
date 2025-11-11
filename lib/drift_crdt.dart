@@ -585,6 +585,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         poolSettings: PoolSettings(
           sslMode: settings?.sslMode,
         ),
+        onlyTables: _onlyTables,
         excludeTables: _excludeTables,
       );
       await tempCrdt.execute('CREATE SCHEMA IF NOT EXISTS "$escapedSchema"', null);
@@ -604,6 +605,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
             await connection.execute('SET search_path TO "$escapedSchema"');
           },
         ),
+        onlyTables: _onlyTables,
         excludeTables: _excludeTables,
       );
     } else {
@@ -617,6 +619,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         poolSettings: settings != null ? PoolSettings(
           sslMode: settings?.sslMode,
         ) : null,
+        onlyTables: _onlyTables,
         excludeTables: _excludeTables,
       );
     }
