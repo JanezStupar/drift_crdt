@@ -585,6 +585,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         poolSettings: PoolSettings(
           sslMode: settings?.sslMode,
         ),
+        excludeTables: _excludeTables,
       );
       await tempCrdt.execute('CREATE SCHEMA IF NOT EXISTS "$escapedSchema"', null);
       await tempCrdt.close();
@@ -603,6 +604,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
             await connection.execute('SET search_path TO "$escapedSchema"');
           },
         ),
+        excludeTables: _excludeTables,
       );
     } else {
       // No schema - use default
@@ -615,6 +617,7 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         poolSettings: settings != null ? PoolSettings(
           sslMode: settings?.sslMode,
         ) : null,
+        excludeTables: _excludeTables,
       );
     }
 
@@ -796,8 +799,8 @@ extension on BigInt {
 /// A query executor that uses sqflite internally.
 class CrdtQueryExecutor extends DelegatedDatabase {
   final SqlDialect _dialect;
-  final Set<String>? _onlyCrdtTables;
-  final Set<String>? _excludeCrdtTables;
+  final Set<String>? _onlyTables;
+  final Set<String>? _excludeTables;
 
   /// A query executor that will store the database in the file declared by
   /// [path]. If [logStatements] is true, statements sent to the database will
@@ -813,27 +816,27 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// The [migrate] parameter controls whether Drift should manage schema migrations
   /// (currently not fully supported in drift_crdt, defaults to false).
   ///
-  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// The [onlyTables] parameter allows filtering operations to only include
   /// specific tables. When set, only tables in this set will have CRDT metadata
   /// columns added and be included in changesets. Cannot be used together with
-  /// [excludeCrdtTables].
+  /// [excludeTables].
   ///
-  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// The [excludeTables] parameter allows filtering operations to exclude
   /// specific tables. When set, tables in this set will not have CRDT metadata
   /// columns added and will not be included in changesets. Cannot be used together
-  /// with [onlyCrdtTables].
+  /// with [onlyTables].
   CrdtQueryExecutor({
     required String path,
     bool? logStatements,
     bool singleInstance = true,
     DatabaseCreator? creator,
     bool migrate = false,
-    Set<String>? onlyCrdtTables,
-    Set<String>? excludeCrdtTables,
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
   })
       : _dialect = SqlDialect.sqlite,
-        _onlyCrdtTables = onlyCrdtTables,
-        _excludeCrdtTables = excludeCrdtTables,
+        _onlyTables = onlyTables,
+        _excludeTables = excludeTables,
         super(
             _CrdtDelegate(
               false,
@@ -841,8 +844,8 @@ class CrdtQueryExecutor extends DelegatedDatabase {
               singleInstance: singleInstance,
               creator: creator,
               migrate: migrate,
-              onlyTables: onlyCrdtTables,
-              excludeTables: excludeCrdtTables,
+              onlyTables: onlyTables,
+              excludeTables: excludeTables,
             ),
             logStatements: logStatements,
             isSequential: true);
@@ -853,33 +856,33 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// The [migrate] parameter controls whether Drift should manage schema migrations
   /// (currently not fully supported in drift_crdt, defaults to false).
   ///
-  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// The [onlyTables] parameter allows filtering operations to only include
   /// specific tables. When set, only tables in this set will have CRDT metadata
   /// columns added and be included in changesets. Cannot be used together with
-  /// [excludeCrdtTables].
+  /// [excludeTables].
   ///
-  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// The [excludeTables] parameter allows filtering operations to exclude
   /// specific tables. When set, tables in this set will not have CRDT metadata
   /// columns added and will not be included in changesets. Cannot be used together
-  /// with [onlyCrdtTables].
+  /// with [onlyTables].
   CrdtQueryExecutor.inMemory({
     bool? logStatements,
     bool singleInstance = true,
     DatabaseCreator? creator,
     bool migrate = false,
-    Set<String>? onlyCrdtTables,
-    Set<String>? excludeCrdtTables,
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
   })
       : _dialect = SqlDialect.sqlite,
-        _onlyCrdtTables = onlyCrdtTables,
-        _excludeCrdtTables = excludeCrdtTables,
+        _onlyTables = onlyTables,
+        _excludeTables = excludeTables,
         super(
             _CrdtDelegateInMemory(
               singleInstance: singleInstance,
               creator: creator,
               migrate: migrate,
-              onlyTables: onlyCrdtTables,
-              excludeTables: excludeCrdtTables,
+              onlyTables: onlyTables,
+              excludeTables: excludeTables,
             ),
             logStatements: logStatements,
             isSequential: true);
@@ -899,27 +902,27 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// The [migrate] parameter controls whether Drift should manage schema migrations
   /// (currently not fully supported in drift_crdt, defaults to false).
   ///
-  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// The [onlyTables] parameter allows filtering operations to only include
   /// specific tables. When set, only tables in this set will have CRDT metadata
   /// columns added and be included in changesets. Cannot be used together with
-  /// [excludeCrdtTables].
+  /// [excludeTables].
   ///
-  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// The [excludeTables] parameter allows filtering operations to exclude
   /// specific tables. When set, tables in this set will not have CRDT metadata
   /// columns added and will not be included in changesets. Cannot be used together
-  /// with [onlyCrdtTables].
+  /// with [onlyTables].
   CrdtQueryExecutor.inDatabaseFolder({
     required String path,
     bool? logStatements,
     bool singleInstance = true,
     DatabaseCreator? creator,
     bool migrate = false,
-    Set<String>? onlyCrdtTables,
-    Set<String>? excludeCrdtTables,
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
   })
       : _dialect = SqlDialect.sqlite,
-        _onlyCrdtTables = onlyCrdtTables,
-        _excludeCrdtTables = excludeCrdtTables,
+        _onlyTables = onlyTables,
+        _excludeTables = excludeTables,
         super(
             _CrdtDelegate(
               true,
@@ -927,8 +930,8 @@ class CrdtQueryExecutor extends DelegatedDatabase {
               singleInstance: singleInstance,
               creator: creator,
               migrate: migrate,
-              onlyTables: onlyCrdtTables,
-              excludeTables: excludeCrdtTables,
+              onlyTables: onlyTables,
+              excludeTables: excludeTables,
             ),
             logStatements: logStatements,
             isSequential: true);
@@ -948,15 +951,15 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// externally. When true (default), drift will manage migrations through
   /// the __schema table.
   ///
-  /// The [onlyCrdtTables] parameter allows filtering CRDT operations to only include
+  /// The [onlyTables] parameter allows filtering operations to only include
   /// specific tables. When set, only tables in this set will have CRDT metadata
   /// columns added and be included in changesets. Cannot be used together with
-  /// [excludeCrdtTables].
+  /// [excludeTables].
   ///
-  /// The [excludeCrdtTables] parameter allows filtering CRDT operations to exclude
+  /// The [excludeTables] parameter allows filtering operations to exclude
   /// specific tables. When set, tables in this set will not have CRDT metadata
   /// columns added and will not be included in changesets. Cannot be used together
-  /// with [onlyCrdtTables].
+  /// with [onlyTables].
   ///
   /// If [logStatements] is true, statements sent to the database will
   /// be printed, which can be handy for debugging.
@@ -966,19 +969,19 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     String? schema,
     bool enableMigrations = true,
     bool? logStatements,
-    Set<String>? onlyCrdtTables,
-    Set<String>? excludeCrdtTables,
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
   })  : _dialect = SqlDialect.postgres,
-        _onlyCrdtTables = onlyCrdtTables,
-        _excludeCrdtTables = excludeCrdtTables,
+        _onlyTables = onlyTables,
+        _excludeTables = excludeTables,
         super(
           _PostgresCrdtDelegate(
             endpoint: endpoint,
             settings: settings,
             schema: schema,
             enableMigrations: enableMigrations,
-            onlyTables: onlyCrdtTables,
-            excludeTables: excludeCrdtTables,
+            onlyTables: onlyTables,
+            excludeTables: excludeTables,
           ),
           logStatements: logStatements,
           isSequential: false, // PostgreSQL supports concurrent operations
@@ -1057,14 +1060,14 @@ class CrdtQueryExecutor extends DelegatedDatabase {
 
       // Apply per-executor filters when caller didn't specify onlyTables
       if (onlyTables == null) {
-        if (_onlyCrdtTables != null && _onlyCrdtTables!.isNotEmpty) {
+        if (_onlyTables != null && _onlyTables!.isNotEmpty) {
           tables = tables
-              .where((t) => _onlyCrdtTables!.contains(t))
+              .where((t) => _onlyTables!.contains(t))
               .toList(growable: false);
-        } else if (_excludeCrdtTables != null &&
-            _excludeCrdtTables!.isNotEmpty) {
+        } else if (_excludeTables != null &&
+            _excludeTables!.isNotEmpty) {
           tables = tables
-              .where((t) => !_excludeCrdtTables!.contains(t))
+              .where((t) => !_excludeTables!.contains(t))
               .toList(growable: false);
         }
       }
@@ -1082,7 +1085,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
 
     return crdt.getChangeset(
         customQueries: effectiveQueries,
-        onlyTables: onlyTables ?? _onlyCrdtTables,
+        onlyTables: onlyTables ?? _onlyTables,
         onlyNodeId: onlyNodeId,
         exceptNodeId: exceptNodeId,
         modifiedOn: modifiedOn,

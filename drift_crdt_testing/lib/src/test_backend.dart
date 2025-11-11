@@ -106,8 +106,8 @@ CrdtQueryExecutor createExecutor({
   bool singleInstance = true,
   DatabaseCreator? sqliteCreator,
   String? postgresSchema,
-  Set<String>? onlyCrdtTables,
-  Set<String>? excludeCrdtTables,
+  Set<String>? onlyTables,
+  Set<String>? excludeTables,
 }) {
   final config = backendConfig;
   if (config.isSqlite) {
@@ -115,16 +115,16 @@ CrdtQueryExecutor createExecutor({
       return CrdtQueryExecutor.inMemory(
         singleInstance: singleInstance,
         creator: sqliteCreator,
-        onlyCrdtTables: onlyCrdtTables,
-        excludeCrdtTables: excludeCrdtTables,
+        onlyTables: onlyTables,
+        excludeTables: excludeTables,
       );
     }
     return CrdtQueryExecutor.inDatabaseFolder(
       path: sqliteDbName,
       singleInstance: singleInstance,
       creator: sqliteCreator,
-      onlyCrdtTables: onlyCrdtTables,
-      excludeCrdtTables: excludeCrdtTables,
+      onlyTables: onlyTables,
+      excludeTables: excludeTables,
     );
   }
 
@@ -136,8 +136,8 @@ CrdtQueryExecutor createExecutor({
     ),
     schema: postgresSchema,
     enableMigrations: config.enableMigrations,
-    onlyCrdtTables: onlyCrdtTables,
-    excludeCrdtTables: excludeCrdtTables,
+    onlyTables: onlyTables,
+    excludeTables: excludeTables,
     logStatements: false,
   );
 }

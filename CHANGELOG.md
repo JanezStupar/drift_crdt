@@ -1,7 +1,4 @@
-## Unreleased
-- Updated `getTables()` and `getTableKeys()` calls to pass the `schema` parameter to postgres_crdt, enabling proper schema-specific queries when using PostgreSQL with schema isolation.
-
-## 2.2.0
+## 2.2.1
 - Added per-table CRDT configuration via the new `onlyCrdtTables` and
   `excludeCrdtTables` options on every `CrdtQueryExecutor` constructor.
 - Filter logic now respects the include/exclude sets for SELECT rewriting and
@@ -9,6 +6,8 @@
 - Extended the `drift_crdt_testing` harness and added
   `test/per_table_configuration_test.dart` to cover the new behavior on both
   SQLite and PostgreSQL backends.
+- Updated `getTables()` and `getTableKeys()` calls to pass the `schema` parameter down to `postgres_crdt`, ensuring schema-specific queries work when isolating CRDT tables.
+- Fixed `_PostgresCrdtDelegate` so `excludeCrdtTables` reach every `PostgresCrdt.open()` call; the postgres-side discovery now filters excluded tables before CRDT metadata queries run.
 
 ## 2.1.0
 - Added optional PostgreSQL `schema` configuration that auto-creates the schema and scopes every connection's `search_path`.

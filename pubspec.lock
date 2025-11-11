@@ -436,11 +436,9 @@ packages:
   postgres_crdt:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "feature/ver4"
-      resolved-ref: "8f2c2c15abc206e9683b895666fe8acc0f093a02"
-      url: "https://github.com/JanezStupar/postgres_crdt.git"
-    source: git
+      path: "../postgres_crdt"
+      relative: true
+    source: path
     version: "4.0.0"
   process_run:
     dependency: transitive
@@ -589,11 +587,9 @@ packages:
   sql_crdt:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "feature/postgres_related"
-      resolved-ref: "7d006faed89e13ae9377d3b2c05e78662964b9bb"
-      url: "https://github.com/JanezStupar/sql_crdt.git"
-    source: git
+      path: "../sql_crdt"
+      relative: true
+    source: path
     version: "4.0.0"
   sqlite3:
     dependency: transitive
@@ -606,11 +602,9 @@ packages:
   sqlite_crdt:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "feature/ver4"
-      resolved-ref: d488004439bf86913ba023ce6d4268337dc1ccd1
-      url: "https://github.com/JanezStupar/sqlite_crdt.git"
-    source: git
+      path: "../sqlite_crdt"
+      relative: true
+    source: path
     version: "4.0.0"
   sqlparser:
     dependency: "direct main"

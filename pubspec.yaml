@@ -38,19 +38,13 @@ dev_dependencies:
 
 dependency_overrides:
   sql_crdt:
-    git:
-      url: https://github.com/JanezStupar/sql_crdt.git
-      ref: feature/postgres_related
+    path: ../sql_crdt
 
   sqlite_crdt:
-    git:
-      url: https://github.com/JanezStupar/sqlite_crdt.git
-      ref: feature/ver4
+    path: ../sqlite_crdt
 
   postgres_crdt:
-    git:
-      url: https://github.com/JanezStupar/postgres_crdt.git
-      ref: feature/ver4
+    path: ../postgres_crdt
 
 platforms:
   linux:

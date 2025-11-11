@@ -7,11 +7,11 @@ Future<void> main() async {
   await testing.configureBackendForPlatform();
 
   group('per-table CRDT configuration', () {
-    test('getChangeset respects onlyCrdtTables defaults', () async {
+    test('getChangeset respects onlyTables defaults', () async {
       final harness = await _TestHarness.open(
         sqliteDbName: 'per_table_only.db',
         schemaName: 'per_table_only',
-        onlyCrdtTables: const {'users'},
+        onlyTables: const {'users'},
       );
       addTearDown(harness.dispose);
 
@@ -24,7 +24,7 @@ Future<void> main() async {
       expect(
         changeset.containsKey('friendships'),
         isFalse,
-        reason: 'friendships should be omitted when onlyCrdtTables is set',
+        reason: 'friendships should be omitted when onlyTables is set',
       );
     });
 
@@ -32,7 +32,7 @@ Future<void> main() async {
       final harness = await _TestHarness.open(
         sqliteDbName: 'per_table_exclude.db',
         schemaName: 'per_table_exclude',
-        excludeCrdtTables: const {'handshake_nodes'},
+        excludeTables: const {'handshake_nodes'},
       );
       addTearDown(harness.dispose);
 
@@ -106,8 +106,8 @@ class _TestHarness {
   static Future<_TestHarness> open({
     required String sqliteDbName,
     required String schemaName,
-    Set<String>? onlyCrdtTables,
-    Set<String>? excludeCrdtTables,
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
   }) async {
     final schema = testing.backendConfig.isPostgres ? schemaName : null;
     await testing.clearBackend(
@@ -119,8 +119,8 @@ class _TestHarness {
       sqliteDbName: sqliteDbName,
       postgresSchema: schema,
       singleInstance: false,
-      onlyCrdtTables: onlyCrdtTables,
-      excludeCrdtTables: excludeCrdtTables,
+      onlyTables: onlyTables,
+      excludeTables: excludeTables,
     );
 
     final connection = DatabaseConnection(executor);
