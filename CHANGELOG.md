@@ -1,3 +1,7 @@
+## 2.2.2
+- `CrdtQueryExecutor.merge` now dispatches `TableUpdate` notifications so Drift
+  watchers refresh automatically after merges on both SQLite and PostgreSQL.
+
 ## 2.2.1
 - Added per-table CRDT configuration via the new `onlyCrdtTables` and
   `excludeCrdtTables` options on every `CrdtQueryExecutor` constructor.

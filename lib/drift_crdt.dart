@@ -804,6 +804,7 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   final SqlDialect _dialect;
   final Set<String>? _onlyTables;
   final Set<String>? _excludeTables;
+  DatabaseConnectionUser? _databaseUser;
 
   /// A query executor that will store the database in the file declared by
   /// [path]. If [logStatements] is true, statements sent to the database will
@@ -993,6 +994,13 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   @override
   SqlDialect get dialect => _dialect;
 
+  @override
+  Future<bool> ensureOpen(QueryExecutorUser user) async {
+    _databaseUser ??=
+        user is DatabaseConnectionUser ? user as DatabaseConnectionUser : null;
+    return super.ensureOpen(user);
+  }
+
   /// The underlying sqflite [s.Database] object used by drift to send queries.
   ///
   /// Using the sqflite database can cause unexpected behavior in drift. For
@@ -1098,7 +1106,16 @@ class CrdtQueryExecutor extends DelegatedDatabase {
   /// merges the provided changeset with the database
   Future<void> merge(CrdtChangeset changeset) async {
     final crdt = _sqlCrdt;
-    return crdt.merge(changeset);
+    await crdt.merge(changeset);
+    _notifyMergeUpdates(changeset.keys);
+  }
+
+  void _notifyMergeUpdates(Iterable<String> tables) {
+    final dbUser = _databaseUser;
+    if (dbUser == null) return;
+
+    final updates = {for (final table in tables.toSet()) TableUpdate(table)};
+    if (updates.isNotEmpty) dbUser.notifyUpdates(updates);
   }
 
   /// Builds an ORDER BY clause for the table's primary key columns.

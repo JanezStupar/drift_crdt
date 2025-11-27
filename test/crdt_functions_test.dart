@@ -144,6 +144,46 @@ void crdtTests(Database db, CrdtExecutor executor) {
     expect(user.name, equals('Go Gopher Updated'));
   });
 
+  test('merge dispatches updates to drift watchers', () async {
+    final changeset = await (db.executor as CrdtQueryExecutor).getChangeset();
+    final target = Map<String, Object?>.from(
+      changeset['users']!.firstWhere(
+        (row) => row['name'] == 'Go Gopher',
+        orElse: () => changeset['users']!.first,
+      ),
+    );
+
+    final originalHlc = _hlcFromChangesetValue(target['hlc']);
+    final updatedHlc = originalHlc
+        .increment(
+            wallTime: originalHlc.dateTime.add(const Duration(seconds: 1)))
+        .apply(nodeId: 'watch-merge');
+    const updatedName = 'Go Gopher Merged';
+
+    final updated = Map<String, Object?>.from(target)
+      ..['name'] = updatedName
+      ..['hlc'] = updatedHlc
+      ..['modified'] = updatedHlc.toString()
+      ..['node_id'] = updatedHlc.nodeId;
+
+    final watchExpectation = expectLater(
+      db.select(db.users).watch(),
+      emitsInOrder([
+        isA<List>(),
+        predicate<List<dynamic>>(
+          (rows) => rows.any((user) => (user as dynamic).name == updatedName),
+          'watch stream includes merged row',
+        ),
+      ]),
+    );
+
+    await (db.executor as CrdtQueryExecutor).merge({
+      'users': [updated]
+    });
+
+    await watchExpectation.timeout(const Duration(seconds: 5));
+  });
+
   test('queryDeleted', () async {
     final notDeleted = await db.select(db.users).get();
     expect(notDeleted.length, equals(baselineUserNames.length));

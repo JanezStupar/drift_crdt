@@ -1,6 +1,6 @@
 name: drift_crdt
 description: A Dart implementation of a drift CRDT database, based on the `sqlite_crdt` package and `sqflite_common`.
-version: 2.2.1
+version: 2.2.2
 repository: https://github.com/JanezStupar/drift_crdt.git
 homepage: https://janezstupar.com
 issue_tracker: https://github.com/JanezStupar/drift_crdt/issues
@@ -39,7 +39,7 @@ dev_dependencies:
 dependency_overrides:
   sql_crdt:
     git:
-      url: https://github.coms/JanezStupar/sql_crdt.git
+      url: https://github.com/JanezStupar/sql_crdt.git
       ref: feature/postgres_related
 #    path: ../sql_crdt
 

@@ -7,12 +7,10 @@ Simon Binder's `drift_sqflite` package.
 
 For more information on `drift`, see its [documentation](https://drift.simonbinder.eu/docs/).
 
-### What's new in 2.2.1
+### What's new in 2.2.2
 
-- Added per-table CRDT configuration via `onlyCrdtTables` / `excludeCrdtTables` on every `CrdtQueryExecutor` constructor so canonical tables can opt-in while sync metadata stays untouched.
-- Default SELECT rewriting and `getChangeset()` builders now honor the include/exclude lists, preventing errors when non-CRDT tables exist in the same schema.
-- Included new regression tests (`per_table_configuration_test.dart`) in `drift_crdt_testing` to cover the configuration on both SQLite and PostgreSQL.
-- PostgreSQL delegates now pass the configured `schema` and `excludeCrdtTables` all the way down to `postgres_crdt`, so table discovery is scoped to the right schema and excluded tables never trigger missing-column crashes.
+- `CrdtQueryExecutor.merge` now dispatches `TableUpdate` notifications so Drift
+  watchers refresh automatically after merges on both SQLite and PostgreSQL.
 
 See `CHANGELOG.md` for older releases.
 
