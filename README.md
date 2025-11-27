@@ -16,6 +16,9 @@ See `CHANGELOG.md` for older releases.
 
 ### Usage
 
+WARNING: To use this package, you must override your local dependencies in your
+`pubspec.yaml` file for `sqlite_crdt', ``postgres_crdt` and `sql_crdt` with the same overrides used in `pubspec.yaml` of this package. This is because I made massive changes to the upstream packages to enable Postgres support for this package, and it has not been sorted out yet whether the maintainer will accept them or whether I should fork them.
+
 The `CrdtQueryExecutor` class can be passed to the constructor of your drift database
 class to make it use `sqflite` or PostgreSQL, depending on which constructor you pick.
 
