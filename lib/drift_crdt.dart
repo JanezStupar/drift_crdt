@@ -11,7 +11,8 @@ import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_crdt/utils.dart';
 import 'package:path/path.dart';
-import 'package:postgres/postgres.dart' show Endpoint, ConnectionSettings, PoolSettings;
+import 'package:postgres/postgres.dart'
+    show Endpoint, ConnectionSettings, PoolSettings;
 import 'package:postgres_crdt/postgres_crdt.dart' as postgres_crdt;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sql_crdt/sql_crdt.dart' as sql_crdt;
@@ -52,9 +53,7 @@ typedef CrdtTableChangeset = sql_crdt.CrdtTableChangeset;
 /// can transparently consume rows emitted by `RETURNING` clauses.
 QueryResult _queryResultFromExecute(ExecuteResult result) {
   if (result case SqlCrdtQueryResult(:final rows)) {
-    final castRows = [
-      for (final row in rows) Map<String, dynamic>.from(row),
-    ];
+    final castRows = [for (final row in rows) Map<String, dynamic>.from(row)];
     return QueryResult.fromRows(castRows);
   }
 
@@ -77,11 +76,15 @@ bool _hasReturningClause(sqlparser.Statement statement) {
 abstract class _TransactionCrdt {
   Future<ExecuteResult> execute(String sql, [List<Object?>? args]);
 
-  Future<List<Map<String, Object?>>> query(String sql,
-      [List<Object?>? arguments]);
+  Future<List<Map<String, Object?>>> query(
+    String sql, [
+    List<Object?>? arguments,
+  ]);
 
-  Future<List<Map<String, Object?>>> rawQuery(String sql,
-      [List<Object?>? arguments]);
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? arguments,
+  ]);
 
   Future<int> rawUpdate(String sql, [List<Object?>? arguments]);
 
@@ -97,21 +100,22 @@ class SqliteTransactionCrdt implements _TransactionCrdt {
 
   @override
   Future<ExecuteResult> execute(String sql, [List<Object?>? args]) {
-    if (sql.contains('CREATE TABLE')) {
-      sql = DriftCrdtUtils.prepareCreateTableQuery(sql);
-    }
     return txn.execute(sql, args);
   }
 
   @override
-  Future<List<Map<String, Object?>>> query(String sql,
-      [List<Object?>? arguments]) {
+  Future<List<Map<String, Object?>>> query(
+    String sql, [
+    List<Object?>? arguments,
+  ]) {
     return txn.query(sql, arguments);
   }
 
   @override
-  Future<List<Map<String, Object?>>> rawQuery(String sql,
-      [List<Object?>? arguments]) {
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? arguments,
+  ]) {
     return txn.query(sql, arguments);
   }
 
@@ -139,21 +143,22 @@ class PostgresTransactionCrdt implements _TransactionCrdt {
 
   @override
   Future<ExecuteResult> execute(String sql, [List<Object?>? args]) {
-    if (sql.contains('CREATE TABLE')) {
-      sql = DriftCrdtUtils.prepareCreateTableQuery(sql);
-    }
     return txn.execute(sql, args);
   }
 
   @override
-  Future<List<Map<String, Object?>>> query(String sql,
-      [List<Object?>? arguments]) {
+  Future<List<Map<String, Object?>>> query(
+    String sql, [
+    List<Object?>? arguments,
+  ]) {
     return txn.query(sql, arguments);
   }
 
   @override
-  Future<List<Map<String, Object?>>> rawQuery(String sql,
-      [List<Object?>? arguments]) {
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? arguments,
+  ]) {
     return txn.query(sql, arguments);
   }
 
@@ -192,13 +197,17 @@ class _CrdtQueryDelegate extends QueryDelegate {
     this._queryDeleted, {
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })  : _onlyTables = onlyTables,
-        _excludeTables = excludeTables;
+  }) : _onlyTables = onlyTables,
+       _excludeTables = excludeTables;
 
   @override
   Future<void> runCustom(String statement, List<Object?> args) async {
     if (statement.contains('CREATE TABLE')) {
-      statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+      statement = DriftCrdtUtils.prepareCreateTableQuery(
+        statement,
+        onlyTables: _onlyTables,
+        excludeTables: _excludeTables,
+      );
     }
     await _transactionCrdt.execute(statement, args);
   }
@@ -220,8 +229,11 @@ class _CrdtQueryDelegate extends QueryDelegate {
         : sql;
 
     final parser = sqlparser.SqlEngine();
-    final parsed = parser.parse(sqlForParsing);
-    final statement = parsed.rootNode as sqlparser.Statement;
+    final parsed = parser.parse(
+      sqlparser.ParserEntrypoint.statement,
+      sqlForParsing,
+    );
+    final statement = parsed.rootNode;
 
     if (statement is sqlparser.InvalidStatement) {
       final result = await _transactionCrdt.query(sql, args);
@@ -278,12 +290,14 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
   @override
   FutureOr<void> startTransaction(Future Function(QueryDelegate) run) {
     return api.sqliteCrdt.transaction((txn) async {
-      return run(_CrdtQueryDelegate(
-        SqliteTransactionCrdt(txn),
-        queryDeleted,
-        onlyTables: onlyTables,
-        excludeTables: excludeTables,
-      ));
+      return run(
+        _CrdtQueryDelegate(
+          SqliteTransactionCrdt(txn),
+          queryDeleted,
+          onlyTables: onlyTables,
+          excludeTables: excludeTables,
+        ),
+      );
     });
   }
 
@@ -293,7 +307,11 @@ class _CrdtTransactionDelegate extends SupportedTransactionDelegate {
     for (final arg in statements.arguments) {
       var statement = statements.statements[arg.statementIndex];
       if (statement.contains('CREATE TABLE')) {
-        statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+        statement = DriftCrdtUtils.prepareCreateTableQuery(
+          statement,
+          onlyTables: onlyTables,
+          excludeTables: excludeTables,
+        );
       }
       batch.execute(statement, arg.arguments);
     }
@@ -331,7 +349,11 @@ class _PostgresCrdtTransactionDelegate extends SupportedTransactionDelegate {
       for (final arg in statements.arguments) {
         var statement = statements.statements[arg.statementIndex];
         if (statement.contains('CREATE TABLE')) {
-          statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+          statement = DriftCrdtUtils.prepareCreateTableQuery(
+            statement,
+            onlyTables: onlyTables,
+            excludeTables: excludeTables,
+          );
         }
         await txn.execute(statement, arg.arguments);
       }
@@ -348,19 +370,21 @@ class _CrdtDelegateInMemory extends _CrdtDelegate {
     Set<String>? onlyTables,
     Set<String>? excludeTables,
   }) : super(
-          false,
-          '',
-          singleInstance: singleInstance,
-          migrate: migrate,
-          creator: creator,
-          onlyTables: onlyTables,
-          excludeTables: excludeTables,
-        );
+         false,
+         '',
+         singleInstance: singleInstance,
+         migrate: migrate,
+         creator: creator,
+         onlyTables: onlyTables,
+         excludeTables: excludeTables,
+       );
 
   @override
   Future<void> open(QueryExecutorUser user) async {
     sqliteCrdt = await SqliteCrdt.openInMemory(
       singleInstance: singleInstance,
+      onlyTables: _onlyTables,
+      excludeTables: _excludeTables,
     );
     _transactionDelegate = _CrdtTransactionDelegate(this);
     _isOpen = true;
@@ -391,12 +415,13 @@ class _CrdtDelegate extends DatabaseDelegate {
     this.migrate = false,
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })  : _onlyTables = onlyTables,
-        _excludeTables = excludeTables;
+  }) : _onlyTables = onlyTables,
+       _excludeTables = excludeTables;
 
   @override
-  late final DbVersionDelegate versionDelegate =
-      _CrdtVersionDelegate(sqliteCrdt);
+  late final DbVersionDelegate versionDelegate = _CrdtVersionDelegate(
+    sqliteCrdt,
+  );
 
   @override
   TransactionDelegate get transactionDelegate {
@@ -432,6 +457,8 @@ class _CrdtDelegate extends DatabaseDelegate {
     sqliteCrdt = await SqliteCrdt.open(
       resolvedPath,
       singleInstance: singleInstance,
+      onlyTables: _onlyTables,
+      excludeTables: _excludeTables,
       // migrate: migrate,
     );
     _transactionDelegate = _CrdtTransactionDelegate(this);
@@ -442,6 +469,8 @@ class _CrdtDelegate extends DatabaseDelegate {
     // default value when no migration happened
     sqliteCrdt = await SqliteCrdt.openInMemory(
       singleInstance: singleInstance,
+      onlyTables: _onlyTables,
+      excludeTables: _excludeTables,
       // migrate: migrate,
     );
     _transactionDelegate = _CrdtTransactionDelegate(this);
@@ -460,7 +489,11 @@ class _CrdtDelegate extends DatabaseDelegate {
     for (final arg in statements.arguments) {
       var statement = statements.statements[arg.statementIndex];
       if (statement.contains('CREATE TABLE')) {
-        statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+        statement = DriftCrdtUtils.prepareCreateTableQuery(
+          statement,
+          onlyTables: _onlyTables,
+          excludeTables: _excludeTables,
+        );
       }
       batch.execute(statement, arg.arguments);
     }
@@ -479,7 +512,11 @@ class _CrdtDelegate extends DatabaseDelegate {
         break;
       default:
         if (statement.contains('CREATE TABLE')) {
-          statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+          statement = DriftCrdtUtils.prepareCreateTableQuery(
+            statement,
+            onlyTables: _onlyTables,
+            excludeTables: _excludeTables,
+          );
         }
         await sqliteCrdt.execute(statement, args);
     }
@@ -496,8 +533,8 @@ class _CrdtDelegate extends DatabaseDelegate {
   @override
   Future<QueryResult> runSelect(String sql, List<Object?> args) async {
     sqlparser.SqlEngine parser = sqlparser.SqlEngine();
-    final parsed = parser.parse(sql);
-    sqlparser.Statement statement = parsed.rootNode as sqlparser.Statement;
+    final parsed = parser.parse(sqlparser.ParserEntrypoint.statement, sql);
+    sqlparser.Statement statement = parsed.rootNode;
 
     if (_hasReturningClause(statement)) {
       final result = await sqliteCrdt.execute(sql, args);
@@ -549,17 +586,17 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
     this.enableMigrations = true,
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })  : _onlyTables = onlyTables,
-        _excludeTables = excludeTables;
+  }) : _onlyTables = onlyTables,
+       _excludeTables = excludeTables;
 
   @override
-  late final DbVersionDelegate versionDelegate =
-      _PostgresCrdtVersionDelegate(postgresCrdt);
+  late final DbVersionDelegate versionDelegate = _PostgresCrdtVersionDelegate();
 
   @override
   TransactionDelegate get transactionDelegate {
-    final delegate =
-        _transactionDelegate ??= _PostgresCrdtTransactionDelegate(this);
+    final delegate = _transactionDelegate ??= _PostgresCrdtTransactionDelegate(
+      this,
+    );
     delegate.queryDeleted = _queryDeleted;
     delegate.onlyTables = _onlyTables;
     delegate.excludeTables = _excludeTables;
@@ -582,13 +619,14 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         port: endpoint.port,
         username: endpoint.username,
         password: endpoint.password,
-        poolSettings: PoolSettings(
-          sslMode: settings?.sslMode,
-        ),
+        poolSettings: PoolSettings(sslMode: settings?.sslMode),
         onlyTables: _onlyTables,
         excludeTables: _excludeTables,
       );
-      await tempCrdt.execute('CREATE SCHEMA IF NOT EXISTS "$escapedSchema"', null);
+      await tempCrdt.execute(
+        'CREATE SCHEMA IF NOT EXISTS "$escapedSchema"',
+        null,
+      );
       await tempCrdt.close();
 
       // Now create the actual pool with onOpen callback
@@ -616,13 +654,18 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         port: endpoint.port,
         username: endpoint.username,
         password: endpoint.password,
-        poolSettings: settings != null ? PoolSettings(
-          sslMode: settings?.sslMode,
-        ) : null,
+        poolSettings: settings != null
+            ? PoolSettings(sslMode: settings?.sslMode)
+            : null,
         onlyTables: _onlyTables,
         excludeTables: _excludeTables,
       );
     }
+
+    postgresCrdt.configureTableFilter(
+      onlyTables: _onlyTables,
+      excludeTables: _excludeTables,
+    );
 
     _transactionDelegate = _PostgresCrdtTransactionDelegate(this);
     _isOpen = true;
@@ -640,7 +683,11 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
       for (final arg in statements.arguments) {
         var statement = statements.statements[arg.statementIndex];
         if (statement.contains('CREATE TABLE')) {
-          statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+          statement = DriftCrdtUtils.prepareCreateTableQuery(
+            statement,
+            onlyTables: _onlyTables,
+            excludeTables: _excludeTables,
+          );
         }
         await txn.execute(statement, arg.arguments);
       }
@@ -658,7 +705,11 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         break;
       default:
         if (statement.contains('CREATE TABLE')) {
-          statement = DriftCrdtUtils.prepareCreateTableQuery(statement);
+          statement = DriftCrdtUtils.prepareCreateTableQuery(
+            statement,
+            onlyTables: _onlyTables,
+            excludeTables: _excludeTables,
+          );
         }
         await postgresCrdt.execute(statement, args);
     }
@@ -694,8 +745,11 @@ class _PostgresCrdtDelegate extends DatabaseDelegate {
         : sql;
 
     final parser = sqlparser.SqlEngine();
-    final parsed = parser.parse(sqlForParsing);
-    final statement = parsed.rootNode as sqlparser.Statement;
+    final parsed = parser.parse(
+      sqlparser.ParserEntrypoint.statement,
+      sqlForParsing,
+    );
+    final statement = parsed.rootNode;
 
     if (statement is sqlparser.InvalidStatement) {
       final result = await postgresCrdt.query(sql, args);
@@ -761,9 +815,7 @@ class _CrdtVersionDelegate extends DynamicVersionDelegate {
 }
 
 class _PostgresCrdtVersionDelegate extends DynamicVersionDelegate {
-  final PostgresCrdt _db;
-
-  _PostgresCrdtVersionDelegate(this._db);
+  _PostgresCrdtVersionDelegate();
 
   @override
   Future<int> get schemaVersion async {
@@ -779,23 +831,6 @@ class _PostgresCrdtVersionDelegate extends DynamicVersionDelegate {
     // PostgreSQL migrations are not supported by drift.
     // Schema versioning should be handled externally.
     // This is a no-op to prevent drift from trying to manage schema versions.
-  }
-}
-
-extension on BigInt {
-  static final _minValue = BigInt.parse('-9223372036854775808');
-  static final _maxValue = BigInt.parse('9223372036854775807');
-
-  int rangeCheckedToInt() {
-    if (this < _minValue || this > _maxValue) {
-      throw ArgumentError.value(
-        this,
-        'this',
-        'Should be in signed 64bit range ($_minValue..=$_maxValue)',
-      );
-    }
-
-    return toInt();
   }
 }
 
@@ -837,22 +872,22 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     bool migrate = false,
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })
-      : _dialect = SqlDialect.sqlite,
-        _onlyTables = onlyTables,
-        _excludeTables = excludeTables,
-        super(
-            _CrdtDelegate(
-              false,
-              path,
-              singleInstance: singleInstance,
-              creator: creator,
-              migrate: migrate,
-              onlyTables: onlyTables,
-              excludeTables: excludeTables,
-            ),
-            logStatements: logStatements,
-            isSequential: true);
+  }) : _dialect = SqlDialect.sqlite,
+       _onlyTables = onlyTables,
+       _excludeTables = excludeTables,
+       super(
+         _CrdtDelegate(
+           false,
+           path,
+           singleInstance: singleInstance,
+           creator: creator,
+           migrate: migrate,
+           onlyTables: onlyTables,
+           excludeTables: excludeTables,
+         ),
+         logStatements: logStatements,
+         isSequential: true,
+       );
 
   /// A query executor that uses an in-memory SQLite database for testing or
   /// temporary storage.
@@ -876,20 +911,20 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     bool migrate = false,
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })
-      : _dialect = SqlDialect.sqlite,
-        _onlyTables = onlyTables,
-        _excludeTables = excludeTables,
-        super(
-            _CrdtDelegateInMemory(
-              singleInstance: singleInstance,
-              creator: creator,
-              migrate: migrate,
-              onlyTables: onlyTables,
-              excludeTables: excludeTables,
-            ),
-            logStatements: logStatements,
-            isSequential: true);
+  }) : _dialect = SqlDialect.sqlite,
+       _onlyTables = onlyTables,
+       _excludeTables = excludeTables,
+       super(
+         _CrdtDelegateInMemory(
+           singleInstance: singleInstance,
+           creator: creator,
+           migrate: migrate,
+           onlyTables: onlyTables,
+           excludeTables: excludeTables,
+         ),
+         logStatements: logStatements,
+         isSequential: true,
+       );
 
   /// A query executor that will store the database in the file declared by
   /// [path], which will be resolved relative to [getDatabasesPath()].
@@ -923,22 +958,22 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     bool migrate = false,
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })
-      : _dialect = SqlDialect.sqlite,
-        _onlyTables = onlyTables,
-        _excludeTables = excludeTables,
-        super(
-            _CrdtDelegate(
-              true,
-              path,
-              singleInstance: singleInstance,
-              creator: creator,
-              migrate: migrate,
-              onlyTables: onlyTables,
-              excludeTables: excludeTables,
-            ),
-            logStatements: logStatements,
-            isSequential: true);
+  }) : _dialect = SqlDialect.sqlite,
+       _onlyTables = onlyTables,
+       _excludeTables = excludeTables,
+       super(
+         _CrdtDelegate(
+           true,
+           path,
+           singleInstance: singleInstance,
+           creator: creator,
+           migrate: migrate,
+           onlyTables: onlyTables,
+           excludeTables: excludeTables,
+         ),
+         logStatements: logStatements,
+         isSequential: true,
+       );
 
   /// A query executor that uses PostgreSQL with CRDT functionality.
   ///
@@ -975,29 +1010,30 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     bool? logStatements,
     Set<String>? onlyTables,
     Set<String>? excludeTables,
-  })  : _dialect = SqlDialect.postgres,
-        _onlyTables = onlyTables,
-        _excludeTables = excludeTables,
-        super(
-          _PostgresCrdtDelegate(
-            endpoint: endpoint,
-            settings: settings,
-            schema: schema,
-            enableMigrations: enableMigrations,
-            onlyTables: onlyTables,
-            excludeTables: excludeTables,
-          ),
-          logStatements: logStatements,
-          isSequential: false, // PostgreSQL supports concurrent operations
-        );
+  }) : _dialect = SqlDialect.postgres,
+       _onlyTables = onlyTables,
+       _excludeTables = excludeTables,
+       super(
+         _PostgresCrdtDelegate(
+           endpoint: endpoint,
+           settings: settings,
+           schema: schema,
+           enableMigrations: enableMigrations,
+           onlyTables: onlyTables,
+           excludeTables: excludeTables,
+         ),
+         logStatements: logStatements,
+         isSequential: false, // PostgreSQL supports concurrent operations
+       );
 
   @override
   SqlDialect get dialect => _dialect;
 
   @override
   Future<bool> ensureOpen(QueryExecutorUser user) async {
-    _databaseUser ??=
-        user is DatabaseConnectionUser ? user as DatabaseConnectionUser : null;
+    _databaseUser ??= user is DatabaseConnectionUser
+        ? user as DatabaseConnectionUser
+        : null;
     return super.ensureOpen(user);
   }
 
@@ -1031,17 +1067,22 @@ class CrdtQueryExecutor extends DelegatedDatabase {
     }
 
     throw StateError(
-        'Unsupported delegate ${currentDelegate.runtimeType} for CrdtQueryExecutor.');
+      'Unsupported delegate ${currentDelegate.runtimeType} for CrdtQueryExecutor.',
+    );
   }
 
   /// Returns the last modified timestamp of the database.
   ///  [onlyNodeId] only return the last modified timestamp of the given node
   ///  [exceptNodeId] do not return the last modified timestamp of the given node
-  Future<Hlc?> getLastModified(
-      {String? onlyNodeId, String? exceptNodeId}) async {
+  Future<Hlc?> getLastModified({
+    String? onlyNodeId,
+    String? exceptNodeId,
+  }) async {
     final crdt = _sqlCrdt;
     return crdt.getLastModified(
-        onlyNodeId: onlyNodeId, exceptNodeId: exceptNodeId);
+      onlyNodeId: onlyNodeId,
+      exceptNodeId: exceptNodeId,
+    );
   }
 
   /// Returns the database changeset according to the given parameters.
@@ -1071,14 +1112,13 @@ class CrdtQueryExecutor extends DelegatedDatabase {
 
       // Apply per-executor filters when caller didn't specify onlyTables
       if (onlyTables == null) {
-        if (_onlyTables != null && _onlyTables!.isNotEmpty) {
+        if (_onlyTables != null && _onlyTables.isNotEmpty) {
           tables = tables
-              .where((t) => _onlyTables!.contains(t))
+              .where((t) => _onlyTables.contains(t))
               .toList(growable: false);
-        } else if (_excludeTables != null &&
-            _excludeTables!.isNotEmpty) {
+        } else if (_excludeTables != null && _excludeTables.isNotEmpty) {
           tables = tables
-              .where((t) => !_excludeTables!.contains(t))
+              .where((t) => !_excludeTables.contains(t))
               .toList(growable: false);
         }
       }
@@ -1086,21 +1126,19 @@ class CrdtQueryExecutor extends DelegatedDatabase {
       final queries = <String, Query>{};
       for (final table in tables) {
         final orderBy = await _orderByPrimaryKeys(crdt, table);
-        queries[table] = (
-          'SELECT * FROM $table$orderBy',
-          const <Object?>[]
-        );
+        queries[table] = ('SELECT * FROM $table$orderBy', const <Object?>[]);
       }
       effectiveQueries = queries;
     }
 
     return crdt.getChangeset(
-        customQueries: effectiveQueries,
-        onlyTables: onlyTables ?? _onlyTables,
-        onlyNodeId: onlyNodeId,
-        exceptNodeId: exceptNodeId,
-        modifiedOn: modifiedOn,
-        modifiedAfter: modifiedAfter);
+      customQueries: effectiveQueries,
+      onlyTables: onlyTables ?? _onlyTables,
+      onlyNodeId: onlyNodeId,
+      exceptNodeId: exceptNodeId,
+      modifiedOn: modifiedOn,
+      modifiedAfter: modifiedAfter,
+    );
   }
 
   /// merges the provided changeset with the database

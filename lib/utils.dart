@@ -8,9 +8,10 @@ class DriftCrdtUtils {
   /// This ensures all placeholders have explicit indices (e.g., ?1, ?2, ?3).
   /// This is important when adding WHERE clauses that might reorder or add new placeholders.
   static void transformAutomaticExplicit(Statement statement) {
-    statement.allDescendants
-        .whereType<NumberedVariable>()
-        .forEachIndexed((i, ref) {
+    statement.allDescendants.whereType<NumberedVariable>().forEachIndexed((
+      i,
+      ref,
+    ) {
       ref.explicitIndex ??= i + 1;
     });
   }
@@ -52,14 +53,33 @@ class DriftCrdtUtils {
   /// We need to delete CRDT columns from a CreateTable statement because the
   /// `sqlite_crdt` library is going to insert them again.
   /// But we need to have them in our definitions to make other logic work correctly
-  static String prepareCreateTableQuery(String query) {
+  static String prepareCreateTableQuery(
+    String query, {
+    Set<String>? onlyTables,
+    Set<String>? excludeTables,
+  }) {
     SqlEngine parser = SqlEngine();
     CreateTableStatement statement =
-        (parser.parse(query).rootNode) as CreateTableStatement;
+        (parser.parse(ParserEntrypoint.statement, query).rootNode)
+            as CreateTableStatement;
+    final tableName = statement.tableName;
+    final onlyIncludesTable =
+        onlyTables == null ||
+        onlyTables.isEmpty ||
+        onlyTables.contains(tableName);
+    final excludesTable = onlyTables == null || onlyTables.isEmpty
+        ? excludeTables?.contains(tableName) ?? false
+        : false;
+    if (!onlyIncludesTable || excludesTable) {
+      return query;
+    }
+
     final columnsToExclude = ['is_deleted', 'hlc', 'node_id', 'modified'];
     statement.columns = statement.columns
-        .where((ColumnDefinition element) =>
-            !columnsToExclude.contains(element.columnName))
+        .where(
+          (ColumnDefinition element) =>
+              !columnsToExclude.contains(element.columnName),
+        )
         .toList();
     return statement.toSql();
   }
@@ -109,19 +129,20 @@ class DriftCrdtUtils {
     }
 
     for (final table in rootTables) {
-      final entityName = table.as ?? table.tableName;
+      final entityName = table.as?.name ?? table.tableName;
       final schemaName = table.as == null ? table.schemaName : null;
 
       // Determine if this table should have CRDT filters applied
       final unqualifiedName = table.tableName;
       final qualifiedName = schemaName != null
-          ? '${schemaName}.${unqualifiedName}'
+          ? '$schemaName.$unqualifiedName'
           : unqualifiedName;
 
       bool applyFilter = true;
       if (onlyTables != null && onlyTables.isNotEmpty) {
         // If onlyTables specified, apply only when a match is found
-        applyFilter = onlyTables.contains(unqualifiedName) ||
+        applyFilter =
+            onlyTables.contains(unqualifiedName) ||
             onlyTables.contains(qualifiedName);
       } else if (excludeTables != null && excludeTables.isNotEmpty) {
         // Otherwise, exclude when a match is found
@@ -143,17 +164,21 @@ class DriftCrdtUtils {
       // Do we filter out the deleted record or not
       Expression expression;
       if (queryDeleted) {
-        expression = Parentheses(BinaryExpression(
-          BinaryExpression(reference, equalToken, NumericLiteral(1)),
-          orToken,
-          BinaryExpression(reference, equalToken, NumericLiteral(0)),
-        ));
+        expression = Parentheses(
+          BinaryExpression(
+            BinaryExpression(reference, equalToken, NumericLiteral(1)),
+            orToken,
+            BinaryExpression(reference, equalToken, NumericLiteral(0)),
+          ),
+        );
       } else {
-        expression = Parentheses(BinaryExpression(
-          BinaryExpression(reference, equalToken, NumericLiteral(0)),
-          orToken,
-          IsNullExpression(reference),
-        ));
+        expression = Parentheses(
+          BinaryExpression(
+            BinaryExpression(reference, equalToken, NumericLiteral(0)),
+            orToken,
+            IsNullExpression(reference),
+          ),
+        );
       }
 
       if (statement.where != null) {
@@ -169,23 +194,19 @@ class DriftCrdtUtils {
   }
 
   // Queries that don't need to be intercepted and transformed
-  static final _specialQueries = <String>{
-    'SELECT 1',
-  };
+  static final _specialQueries = <String>{'SELECT 1'};
 
   // There are some queries where it doesn't make sense to add CRDT columns
   static bool isSpecialQuery(ParseResult result) {
     // Pragma queries don't need to be intercepted and transformed
-    if (result.sql.toUpperCase().startsWith('PRAGMA')) {
+    if (result.sql.text.toUpperCase().startsWith('PRAGMA')) {
       return true;
     }
 
     //  IF the query is on the lookup table, we don't need to add CRDT columns
-    if (_specialQueries.contains(result.sql.toUpperCase())) {
+    if (_specialQueries.contains(result.sql.text.toUpperCase())) {
       return true;
     }
-    ;
-
     final statement = result.rootNode;
     if (statement is SelectStatement) {
       //     If the query is accessing the schema table, we don't need to add CRDT columns
@@ -227,7 +248,7 @@ class DriftCrdtUtils {
   }
 }
 
-class _PostgresNodeSqlBuilder extends NodeSqlBuilder {
+final class _PostgresNodeSqlBuilder extends NodeSqlBuilder {
   final Set<String> _quotedIdentifiers;
 
   _PostgresNodeSqlBuilder(this._quotedIdentifiers);
@@ -242,15 +263,23 @@ class _PostgresNodeSqlBuilder extends NodeSqlBuilder {
   }
 
   @override
-  void identifier(String identifier,
-      {bool spaceBefore = true, bool spaceAfter = true}) {
+  void identifier(
+    String identifier, {
+    IdentifierToken? fromToken,
+    bool spaceBefore = true,
+    bool spaceAfter = true,
+  }) {
     if (_quotedIdentifiers.contains(identifier)) {
       final escaped = identifier.replaceAll('"', '""');
       symbol('"$escaped"', spaceBefore: spaceBefore, spaceAfter: spaceAfter);
       return;
     }
-    super.identifier(identifier,
-        spaceBefore: spaceBefore, spaceAfter: spaceAfter);
+    super.identifier(
+      identifier,
+      fromToken: fromToken,
+      spaceBefore: spaceBefore,
+      spaceAfter: spaceAfter,
+    );
   }
 
   @override

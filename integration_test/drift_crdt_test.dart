@@ -4,10 +4,18 @@ import 'package:drift_crdt/drift_crdt.dart';
 import 'package:drift_testcases/tests.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'
-    show databaseFactory, databaseFactoryFfi, getDatabasesPath;
+    show
+        DatabaseException,
+        databaseFactory,
+        databaseFactoryFfi,
+        getDatabasesPath;
 import 'package:test/test.dart';
 
 class CrdtExecutor extends TestExecutor {
+  final String databasePath;
+
+  CrdtExecutor(this.databasePath);
+
   // Nested transactions are not supported because the Sqflite backend doesn't
   // support them.
   @override
@@ -16,17 +24,13 @@ class CrdtExecutor extends TestExecutor {
   @override
   DatabaseConnection createConnection() {
     return DatabaseConnection(
-      CrdtQueryExecutor.inDatabaseFolder(
-        path: 'app.db',
-        singleInstance: false,
-      ),
+      CrdtQueryExecutor(path: databasePath, singleInstance: false),
     );
   }
 
   @override
   Future deleteData() async {
-    final folder = await getDatabasesPath();
-    final file = File(join(folder, 'app.db'));
+    final file = File(databasePath);
 
     if (await file.exists()) {
       await file.delete();
@@ -39,11 +43,16 @@ Future<void> main() async {
     databaseFactory = databaseFactoryFfi;
   }
 
-  runAllTests(CrdtExecutor());
+  // Resolve the test path once so setup, the executor, and teardown always
+  // target the same file.
+  final databasesPath = await getDatabasesPath();
+  final testExecutor = CrdtExecutor(join(databasesPath, 'app.db'));
+  setUp(testExecutor.deleteData);
+
+  runAllTests(testExecutor);
 
   // Test loading a database from file (creator callback)
   test('can load a database with creator callback', () async {
-    final databasesPath = await getDatabasesPath();
     final dbFile = File(join(databasesPath, 'app_from_creator.db'));
     if (await dbFile.exists()) {
       await dbFile.delete();
@@ -61,7 +70,12 @@ Future<void> main() async {
     );
     final database = Database.executor(executor);
     await database.executor.ensureOpen(database);
-    addTearDown(database.close);
+    addTearDown(() async {
+      await database.close();
+      if (await dbFile.exists()) {
+        await dbFile.delete();
+      }
+    });
 
     expect(didCallCreator, isTrue);
   });
@@ -85,7 +99,10 @@ Future<void> main() async {
     } catch (e) {
       expect(e, expectedException);
     } finally {
-      await database.customSelect('select 1').getSingle().timeout(
+      await database
+          .customSelect('select 1')
+          .getSingle()
+          .timeout(
             const Duration(milliseconds: 500),
             onTimeout: () => fail('deadlock?'),
           );
@@ -99,15 +116,19 @@ Future<void> main() async {
 
     await database.customStatement('PRAGMA foreign_keys = ON;');
     await database.customStatement('CREATE TABLE x (foo INTEGER PRIMARY KEY);');
-    await database.customStatement('CREATE TABLE y (foo INTEGER PRIMARY KEY '
-        'REFERENCES x (foo) DEFERRABLE INITIALLY DEFERRED);');
+    await database.customStatement(
+      'CREATE TABLE y (foo INTEGER PRIMARY KEY '
+      'REFERENCES x (foo) DEFERRABLE INITIALLY DEFERRED);',
+    );
 
     await expectLater(
       database.transaction(() async {
-        await database.customStatement('INSERT INTO y VALUES (2);');
+        await database.customStatement('INSERT INTO y (foo) VALUES (2);');
       }),
-      throwsA(isA<CouldNotRollBackException>()),
+      throwsA(isA<DatabaseException>()),
     );
+
+    expect(await database.customSelect('SELECT * FROM y').get(), isEmpty);
   });
 }
 

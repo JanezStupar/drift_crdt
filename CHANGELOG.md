@@ -1,3 +1,26 @@
+## 2.3.0
+
+### Compatibility
+- Added support for Drift 2.34.x and sqlparser 0.45.x.
+- Updated the Sqflite FFI stack for sqlite3 3.x compatibility.
+- Raised the minimum supported Dart SDK version to 3.12.
+
+### Fixed
+- Applied `onlyCrdtTables` and `excludeCrdtTables` consistently to direct,
+  transactional, and batched writes on both SQLite and PostgreSQL.
+- Prevented duplicate `is_deleted` columns when rewriting inserts, including
+  `INSERT ... SELECT` statements.
+- Recovered SQLite connections after deferred-constraint commit failures while
+  preserving exceptions thrown by the transaction body.
+- Stopped changing Sqflite's process-wide database path on Linux. Relative file
+  paths are resolved locally while SQLite `:memory:` and `file:` URI paths are
+  preserved.
+
+### Testing
+- Added regression coverage for filtered writes, insert rewriting, failed
+  commits, exception preservation, post-failure database usability, global
+  database-path stability, and SQLite file URIs.
+
 ## 2.2.2
 - `CrdtQueryExecutor.merge` now dispatches `TableUpdate` notifications so Drift
   watchers refresh automatically after merges on both SQLite and PostgreSQL.
